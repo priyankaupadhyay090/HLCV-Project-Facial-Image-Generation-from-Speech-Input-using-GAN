@@ -40,6 +40,7 @@ from dllogger.logger import LOGGER
 import dllogger.logger as dllg
 from dllogger.autologging import log_hardware, log_args
 from torch.utils.data import Dataset
+from tqdm import tqdm
 # from apex import amp
 
 from waveglow.denoiser import Denoiser
@@ -280,7 +281,7 @@ def main():
     measurements = {}
     img_num = 0
     k = 0
-    for i, data in enumerate(data_loader):
+    for i, data in tqdm(enumerate(data_loader)):
         try: 
             new_num = math.ceil((i+1)/2)             
             sequences_padded, input_lengths, keys = data
@@ -317,13 +318,16 @@ def main():
             for j, audio in enumerate(audios):
                 k+=1
                 key = keys[j]
+                print(f"{j}: key - {key}")
                 audio = audio[:mel_lengths[j]*args.stft_hop_length]
                 audio = audio/torch.max(torch.abs(audio))
                 # audio_path = args.output + "/audio_"+str(j)+'-'+str(i)+".wav"
                 audio_dir = args.output
-                audio_path = str(key) + '.wav'         
-                save_path = os.path.join(audio_dir,audio_path)
-                #print(f'saving to path: {save_path}')
+                if not os.path.exists(audio_dir):
+                    os.makedirs(audio_dir, exist_ok=False)
+                audio_path = f"{str(key)}.wav"
+                save_path = os.path.join(audio_dir, audio_path)
+                print(f'saving to path: {save_path}')
                 write(save_path, args.sampling_rate, audio.cpu().numpy())
 
                 info = 'saved the %i-th audios\n'%(k)       

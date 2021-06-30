@@ -1,0 +1,22 @@
+name: pyHLCV
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.7
+  - anaconda
+  - pip
+  - torchvision
+  - torchaudio
+  - pytorch
+  - pip:
+    - audioread
+    - gdown
+    - inflect
+    - librosa
+    - numba
+    - pooch
+    - resampy
+    - soundfile
+    - unidecode
+

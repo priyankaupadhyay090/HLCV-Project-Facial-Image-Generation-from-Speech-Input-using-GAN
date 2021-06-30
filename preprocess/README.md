@@ -15,3 +15,11 @@
 5. cd back to `Tacotron2_batch_inference` directory
 6. mkdir data/output; this will be where the .wav files are saved
 7. run `python inference.py --tacotron2 <path to where tacotron2 chkpt is saved> --waveglow <path to saved waveglow chkpt>
+
+## .wav audio files to Mel
+1. run `python wavaudio_to_npy.py` to read wav to np arrays and save them as .npy files
+2. these files are saved under `audio_npy`
+3. run `python wavaudio_to_mel.py` to convert the .npy files in `audio_npy` into mel spectogram files and save them in 
+   `audio_mel` dir as .npy files with the same structure and filenames
+   
+4. the .npy files in `audio_mel` have identical names as in `audio_npy`

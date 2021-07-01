@@ -5,7 +5,7 @@ This script is the same as Audio_to_mel.py script in https://github.com/xinsheng
 import numpy as np
 import librosa
 import os
-
+from tqdm import tqdm
 
 def audio_processing(input_file):
     """
@@ -36,12 +36,12 @@ def audio_processing(input_file):
 root = 'mmca/audio/audio_npy'
 save_root = 'mmca/audio/mel'
 clss_names = os.listdir(root)
-for clss_name in sorted(clss_names):
-    clss_path = os.path.join(root,clss_name)
+for clss_name in tqdm(sorted(clss_names), desc="images"):
+    clss_path = os.path.join(root, clss_name)
     img_names = os.listdir(clss_path)
     for img_name in sorted(img_names):
         name = img_name.split('.')[0]
-        audio_path = os.path.join(clss_path,img_name)
+        audio_path = os.path.join(clss_path, img_name)
         audios =np.load(audio_path,allow_pickle=True)
         mels = []
         for audio in audios:
@@ -52,4 +52,5 @@ for clss_name in sorted(clss_names):
             os.makedirs(save_dir)
         save_path = save_dir + '/' + name + '.npy'
         np.save(save_path, mels)
-    print(clss_name)
+    print(f"{clss_name} audios converted to mels. "
+          f"files saved to {save_path}")

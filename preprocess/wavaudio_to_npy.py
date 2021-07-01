@@ -5,6 +5,7 @@ Read in all the .wav audio files in a specified directory and save the list of n
 import numpy as np
 import librosa
 import os
+from tqdm import tqdm
 
 path = 'mmca/audio/wav/'
 img_names = os.listdir(path)
@@ -17,19 +18,16 @@ save_root = 'mmca/audio/audio_npy'
 #        print(f"img_names: {img_names}")
 #    except NotADirectoryError:
 #        img_names = [clss_path]
-for img_name in sorted(img_names):
+for img_name in tqdm(sorted(img_names), desc="images"):
     img_path = os.path.join(path, img_name)
-    print(f"img_path: {img_path}")
+    # print(f"img_path: {img_path}")
     try:
         audio_names = os.listdir(img_path)
-        print(audio_names)
     except NotADirectoryError or FileNotFoundError:
         audio_names = [img_name]
     audio = []
     for audio_name in sorted(audio_names):
-        print(audio_name)
         audio_path = os.path.join(img_path, audio_name)
-        print(audio_path)
         if os.path.exists(audio_path):
             y, sr = librosa.load(audio_path)
         else:
@@ -46,3 +44,5 @@ for img_name in sorted(img_names):
     else:
         save_name = save_path + '/' + img_name + '.npy'
     np.save(save_name, audio)
+    print(f"{img_name} wav files to npy processed."
+          f"files saved at: {save_name}")

@@ -21,18 +21,17 @@ class SED(nn.Module):
 
     def forward(self, x):
 
-        print(x.shape)
         x = self.conv1(x)
         x = self.bnorm1(x)
-        print(x.shape)
         x = self.conv2(x)
-        print(x.shape)
         x = self.bnorm2(x)
-        print(x.shape)
+
+        #l = int((l-(self.conv1.kernel_size[0]-self.conv1.stride[0]))/self.conv1.stride[0])
+        #l = int((l-(self.conv2.kernel_size[0]-self.conv2.stride[0]))/self.conv2.stride[0])
+        #x = torch.nn.utils.rnn.pack_padded_sequence(x.transpose(2,1), l, batch_first=True)
+
         x, hn = self.gru(x.transpose(2,1))
-        print(x.shape)
         x = self.att(x)
-        print(x.shape)
 
         return x
 

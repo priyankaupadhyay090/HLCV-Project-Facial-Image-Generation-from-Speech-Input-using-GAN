@@ -53,3 +53,14 @@ mmca:
 To be able to run all the pre-processing scripts, all the files need to be in these directories according to this
 organizational structure. For training and running experiments, only the files in `mmca/images`, 
 `mmca/audio/mel`, `test`, and `train` need to be there.
+
+The mel spectrogram files can be generated from celeba-caption according to the following steps:
+
+1. `python captions_to_pickle.py`
+2. `bash run_inference_celeba.sh`
+3. `python wavaudio_to_npy.py`
+4. `python wavaudio_to_mel.py`
+
+Steps 2-4 can also be run with: `bash run_inference_wave_to_mel.sh` 
+
+Esimated pre-processing time: **5-6 secs/image** from TTS - Mel. There are **30,000** images.

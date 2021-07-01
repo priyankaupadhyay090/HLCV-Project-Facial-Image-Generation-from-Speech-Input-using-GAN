@@ -23,3 +23,33 @@
    `audio_mel` dir as .npy files with the same structure and filenames
    
 4. the .npy files in `audio_mel` have identical names as in `audio_npy`
+
+# Data Files
+
+The data files we work with can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1e2PfNi5YuQYzrzpPeOQ6DTJDht5FGoJg?usp=sharing).
+This drive also contains the downloaded **Multi-Modal-Celeb-A Dataset**, which can also be downloaded from: 
+[Multi-Modal-Celeb-A Dataset Source](https://github.com/IIGROUP/Multi-Modal-CelebA-HQ-Dataset).
+
+For our experiments, you only need to download the following files:
+* image files
+* mel spectrograms of the text captions files
+* test and train partition filenames
+
+Please organize the data directory as follows:
+
+```angular2html
+mmca:
+	|-images: <put all image files here>
+	|
+	|-audio
+		|-mel: <put all mel spectogram files here>
+		|-wav: <all wav files from Tacotron2 inference.py should be here>
+	|-test: <filename.pickle file for test partition filenames>
+	|-train: <filename.pickle file for train partition filenames>
+	|-captions_pickles: <captions for each image from captions_to_pickle.py>
+	|-celeba-caption: <original caption files in .txt>
+```
+
+To be able to run all the pre-processing scripts, all the files need to be in these directories according to this
+organizational structure. For training and running experiments, only the files in `mmca/images`, 
+`mmca/audio/mel`, `test`, and `train` need to be there.

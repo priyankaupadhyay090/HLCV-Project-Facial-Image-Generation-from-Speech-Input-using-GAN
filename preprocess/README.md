@@ -35,6 +35,8 @@ For our experiments, you only need to download the following files:
 * mel spectrograms of the text captions files
 * test and train partition filenames
 
+**10 samples** of the images, .wav, and mel spectrogram files can also be downloaded directly from the git repo.
+
 Please organize the data directory as follows:
 
 ```angular2html

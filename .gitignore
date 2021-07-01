@@ -1,0 +1,5 @@
+#ignore checkpoint files
+*.pt
+
+#ignore pickle data files
+mmca/*/*.pickle

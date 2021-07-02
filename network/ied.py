@@ -52,7 +52,6 @@ class Inception_V3_Model(nn.Module):
         self.Mixed_7a = model.Mixed_7a
         self.Mixed_7b = model.Mixed_7b
         self.Mixed_7c = model.Mixed_7c
-        self.Linear = Linear_Encoder()
 
     def forward(self, x):
         features = None
@@ -82,7 +81,6 @@ class Inception_V3_Model(nn.Module):
         x = self.Mixed_7c(x)
 
         x = x.mean(dim=(2, 3)) # 2048
-        x = self.Linear(x) #1024
 
         return x 
 

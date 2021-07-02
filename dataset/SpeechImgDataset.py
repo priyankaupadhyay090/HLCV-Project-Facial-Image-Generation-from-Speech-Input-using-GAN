@@ -62,14 +62,15 @@ def pad_collate(batch):
             feature[:input_length, :input_dim] = captions
 
             batch[i] = (imgs, feature, cls_id, key, input_length, label)
-            print(f"Pad Collate -- item {i} in batch")
+            #print(f"Pad Collate -- item {i} in batch")
+            """
             print(f"caption feature.shape: {feature.shape}\n"
                   f"imgs: {imgs}\n"
                   f"imgs.shape: {imgs.shape}"
                   f"cls_id: {cls_id}\n"
                   f"key: {key}\n"
                   f"caption input_length: {input_length}\n"
-                  f"label: {label}\n")
+                  f"label: {label}\n")"""
 
         # sort by input_length
         batch.sort(key=lambda x: x[-2], reverse=True)
@@ -131,7 +132,7 @@ class SpeechImgDataset(data.Dataset):
         if filepath.is_file():
             with open(filepath, 'rb') as f:
                 filenames = pickle.load(f)
-            print(f"Load filenames from: {filepath} {len(filenames)}")
+            #print(f"Load filenames from: {filepath} {len(filenames)}")
         else:
             filenames = []
         return filenames
@@ -147,7 +148,7 @@ class SpeechImgDataset(data.Dataset):
             # print(f"Data dir: {data_dir}\n")
 
             img_path_name = data_dir / 'images' / f"{key}.jpg"
-            print(f'Image paht: {img_path_name}')
+            #print(f'Image paht: {img_path_name}')
             # img_name = f"{data_dir}/images/{key}.jpg"
             images = get_imgs(img_path_name, self.img_size, bbox, self.transform, normalize=self.norm)
 
@@ -159,7 +160,7 @@ class SpeechImgDataset(data.Dataset):
         else:
             audio_file = self.data_dir / 'mmca' / 'audio' / 'mel' / key / f"{key}.npy"
             # audio_file = f"{self.data_dir}/audio/mel/{key}/{key}.npy"
-        print(f"caption audio file: {audio_file}")
+        #print(f"caption audio file: {audio_file}")
 
         if self.split == 'train':
             audio_ix = random.randint(0, self.embeddings_num)

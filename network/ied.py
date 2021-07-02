@@ -18,6 +18,7 @@ import torchvision.models as imagemodels
 import torch.utils.model_zoo as model_zoo
 from torchvision import models
 
+
 ## Pre-trained Inception V3 Model
 
 class Inception_V3_Model(nn.Module):
@@ -25,14 +26,14 @@ class Inception_V3_Model(nn.Module):
     def __init__(self):
         super(Inception_V3_Model, self).__init__()
 
-        model = models.inception_v3()
+        model = models.inception_v3(init_weights=True)
         pretrained_url = 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth'
         model.load_state_dict(model_zoo.load_url(pretrained_url))
         for param in model.parameters():
             param.requires_grad = False
         print("Loading pre-trained model from ", pretrained_url)
         self.define_inception_module(model)
-        
+
     def define_inception_module(self, model):
         ## define our model architecture with the pretrained model
 
@@ -52,7 +53,7 @@ class Inception_V3_Model(nn.Module):
         self.Mixed_7a = model.Mixed_7a
         self.Mixed_7b = model.Mixed_7b
         self.Mixed_7c = model.Mixed_7c
-        self.Linear = Linear_Encoder()
+        # self.Linear = Linear_Encoder()
 
     def forward(self, x):
         features = None
@@ -81,13 +82,12 @@ class Inception_V3_Model(nn.Module):
         x = self.Mixed_7b(x)
         x = self.Mixed_7c(x)
 
-        x = x.mean(dim=(2, 3)) # 2048
-        x = self.Linear(x) #1024
+        x = x.mean(dim=(2, 3))  # 2048
+        # x = self.Linear(x) #1024
 
-        return x 
+        return x
 
-## Sigle layer FC layer 
-
+# Single layer FC layer
 class Linear_Encoder(nn.Module):
     def __init__(self):
         super(Linear_Encoder, self).__init__()
@@ -99,9 +99,34 @@ class Linear_Encoder(nn.Module):
         self.Linear.weight.data.uniform_(-0.1, 0.1)
 
     def forward(self, input):
-        
         if len(input.shape) == 3:
             input = input.squeeze(1)
-            
+
         x = self.Linear(input)
         return nn.functional.normalize(x, p=2, dim=1)
+
+
+def main():
+    # testing ied:
+    # testing SED
+    image_model = Inception_V3_Model()
+    image_linear_model = Linear_Encoder()
+    image_trainables = [p for p in image_linear_model.parameters() if p.requires_grad]
+    print(image_model)
+    print(image_trainables)
+
+    input_img = torch.rand((2, 3, 256, 256), dtype=torch.float32)
+    print(input_img)
+    out_img = image_model(input_img)
+    out_img_features = image_linear_model(out_img)
+
+
+    print(input_img[0])
+    print(input_img[1])
+
+    print(out_img_features.shape)
+    print(out_img_features)
+
+
+if __name__ == '__main__':
+    main()

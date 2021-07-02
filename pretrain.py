@@ -23,7 +23,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     trainables = audio_trainables + image_trainables
     
     max_epoch = 100
-    lr = 0.001
+    lr = 0.0001
     bs = 2
 
     optimizer = torch.optim.Adam(trainables, lr=lr,

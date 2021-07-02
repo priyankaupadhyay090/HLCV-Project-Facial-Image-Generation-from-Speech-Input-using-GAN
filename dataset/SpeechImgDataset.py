@@ -29,7 +29,7 @@ TRAIN_BATCH_SIZE = 2
 DATA_DIR = PARENT_DIR / 'preprocess' / 'mmca'
 IMG_SIZE = 256
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-WORKERS = 8 if DEVICE == 'cuda' else 4
+WORKERS = 0  # 8 if DEVICE == 'cuda' else 2  # set this to 0 if [W ParallelNative.cpp:212] Warning Error
 
 # sample pickle files for filenames: ['0', '1', '2', etc.]
 FILENAMES = 'sample_filenames.pickle'
@@ -62,13 +62,13 @@ def pad_collate(batch):
             feature[:input_length, :input_dim] = captions
 
             batch[i] = (imgs, feature, cls_id, key, input_length, label)
-            print(f"Pad Collate -- Each item in batch {i}:")
-            print(f"feature.shape: {feature.shape}\n"
+            print(f"Pad Collate -- item {i} in batch")
+            print(f"caption feature.shape: {feature.shape}\n"
                   f"imgs: {imgs}\n"
                   f"imgs.shape: {imgs.shape}"
                   f"cls_id: {cls_id}\n"
                   f"key: {key}\n"
-                  f"input_length: {input_length}\n"
+                  f"caption input_length: {input_length}\n"
                   f"label: {label}\n")
 
         # sort by input_length
@@ -80,6 +80,7 @@ def pad_collate(batch):
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     img = Image.open(img_path).convert('RGB')
     width, height = img.size
+    # img.show()
 
     """ # mmca dataset doesn't need bbox
     if bbox is not None:
@@ -143,11 +144,13 @@ class SpeechImgDataset(data.Dataset):
         if TRAIN_MODE != 'extraction':
             bbox = None
             data_dir = self.data_dir
-            print(f"Data dir: {data_dir}\n")
+            # print(f"Data dir: {data_dir}\n")
 
             img_path_name = data_dir / 'images' / f"{key}.jpg"
+            print(f'Image paht: {img_path_name}')
             # img_name = f"{data_dir}/images/{key}.jpg"
             images = get_imgs(img_path_name, self.img_size, bbox, self.transform, normalize=self.norm)
+
 
         # audio mel files
         if self.data_dir.name.find('mmca') != -1:
@@ -156,6 +159,7 @@ class SpeechImgDataset(data.Dataset):
         else:
             audio_file = self.data_dir / 'mmca' / 'audio' / 'mel' / key / f"{key}.npy"
             # audio_file = f"{self.data_dir}/audio/mel/{key}/{key}.npy"
+        print(f"caption audio file: {audio_file}")
 
         if self.split == 'train':
             audio_ix = random.randint(0, self.embeddings_num)
@@ -175,6 +179,7 @@ class SpeechImgDataset(data.Dataset):
         if TRAIN_MODE == 'extraction':
             return captions
         else:
+            # print('returning images, captions, cls_id, key, label')
             return images, captions, cls_id, key, label
 
     def __len__(self):
@@ -228,6 +233,7 @@ def main():
 
     # Dataloader for classificaiton of single modal
     elif TRAIN_MODE == 'extraction':
+        # this is actually not used in S2IGAN at all, so can be deleted later
 
         dataset = SpeechImgDataset(DATA_DIR, 'train',
                                    img_size=imsize,
@@ -249,6 +255,9 @@ def main():
         sys.exit(1)
 
     # Testing train_loader
+    print(f'Testing train_loader')
+    N_examples = train_loader.dataset.__len__()
+    print(f"N_examples: {N_examples}")
     for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
 
         B = audio_input.size(0)
@@ -259,11 +268,32 @@ def main():
 
         image_input = image_input.float().to(DEVICE)
         print(f"image_input from data loader: {image_input}\n"
-              f"image inpput shape: {image_input.shape}")
+              f"image input shape: {image_input.shape}")
         image_input = image_input.squeeze(1)
 
         print(f"{i}-th item in the train_loader:\n"
               f"audio_input.size: {B}\n"
+              f"audio_input: {audio_input}\n"
+              f"label long tensor?: {label}\n"
+              f"input length: {input_length}\n"
+              f"image_input after squeeze(1): {image_input}\n")
+
+    print(f"Testing val_loader")
+    N_examples = val_loader.dataset.__len__()
+    print(f"N_examples: {N_examples}")
+    for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(val_loader):
+        image_input = image_input.to(DEVICE)
+        audio_input = audio_input.to(DEVICE)
+        print(f"image_input from data loader: {image_input}\n"
+              f"image input shape: {image_input.shape}")
+        image_input = image_input.squeeze(1)
+
+        audio_input = audio_input.float().to(DEVICE)
+        image_input = image_input.float().to(DEVICE)
+        input_length = input_length.float().to(DEVICE)
+
+        print(f"{i}-th item in the val_loader:\n"
+              f"audio_input.size: {audio_input.size}\n"
               f"audio_input: {audio_input}\n"
               f"label long tensor?: {label}\n"
               f"input length: {input_length}\n"

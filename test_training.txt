@@ -1,0 +1,33 @@
+Testing Constant Variables:
+PARENT_DIR: /Users/noonscape/Documents/hlcv/project/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN
+TRAIN_MODE: co-train
+TRAIN_FLAG: True
+MANUAL_SEED: 200
+CAPTIONS_PER_IMAGE: 10
+TRAIN_BATCH_SIZE: 2
+WORKERS: 0
+DATA_DIR: /Users/noonscape/Documents/hlcv/project/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/preprocess/mmca
+IMG_SIZE: 256
+DEVICE: cpu
+Loading pre-trained model from  https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth
+starting training
+epoch = 5 | loss = 1.3850207328796387 
+epoch = 10 | loss = 1.3390816450119019 
+epoch = 15 | loss = 0.9862689971923828 
+epoch = 20 | loss = 0.8731169104576111 
+epoch = 25 | loss = 0.5468508005142212 
+epoch = 30 | loss = 0.7504727840423584 
+epoch = 35 | loss = 1.1868102550506592 
+epoch = 40 | loss = 1.2738211154937744 
+epoch = 45 | loss = 1.143002986907959 
+epoch = 50 | loss = 1.3222600221633911 
+epoch = 55 | loss = 0.8850440979003906 
+epoch = 60 | loss = 1.037742257118225 
+epoch = 65 | loss = 1.3105814456939697 
+epoch = 70 | loss = 1.0865145921707153 
+epoch = 75 | loss = 1.4011030197143555 
+epoch = 80 | loss = 0.7853477597236633 
+epoch = 85 | loss = 0.8473184704780579 
+epoch = 90 | loss = 1.281158447265625 
+epoch = 95 | loss = 1.6192398071289062 
+epoch = 100 | loss = 2.1824209690093994 

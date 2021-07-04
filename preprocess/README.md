@@ -26,14 +26,16 @@
 
 # Data Files
 
-The data files we work with can be downloaded from [Google Drive](https://drive.google.com/drive/folders/1e2PfNi5YuQYzrzpPeOQ6DTJDht5FGoJg?usp=sharing).
-This drive also contains the downloaded **Multi-Modal-Celeb-A Dataset**, which can also be downloaded from: 
+The data files we work with can be downloaded from [this Google Drive](https://drive.google.com/drive/folders/1e2PfNi5YuQYzrzpPeOQ6DTJDht5FGoJg?usp=sharing).
+This drive also contains the original downloaded **Multi-Modal-Celeb-A Dataset**, which can also be downloaded from: 
 [Multi-Modal-Celeb-A Dataset Source](https://github.com/IIGROUP/Multi-Modal-CelebA-HQ-Dataset).
 
 For our experiments, you only need to download the following files:
 * image files
-* mel spectrograms of the text captions files
+* mel spectrograms of the text captions files (~2.5GB zip file). Please note that the version provided in our [Google Drive](https://drive.google.com/drive/folders/1e2PfNi5YuQYzrzpPeOQ6DTJDht5FGoJg?usp=sharing) only contains the mel spectrograms of 1 randomly selected caption (from 10 captions) per image file.
 * test and train partition filenames
+
+If you also want the .wav audio files of the captions, they can be downloaded from this other [Google Drive](https://drive.google.com/drive/folders/1pCE2M2pVDnZLNlUiLG6340QSEAsAR3lQ?usp=sharing). (~15GB zip file) Please note that this version only contains 1 randomly selected caption (from 10 captions) per image file.
 
 **10 samples** of the images, .wav, and mel spectrogram files can also be downloaded directly from the git repo.
 

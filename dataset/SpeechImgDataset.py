@@ -23,16 +23,16 @@ PARENT_DIR = Path(__file__).resolve().parent.parent
 # parameters from cfg or cfg file in S2IGAN
 MANUAL_SEED = 200
 TRAIN_MODE = 'co-train'  # 'extraction' during feature extraction
-CAPTIONS_PER_IMAGE = 10  # number of captions per image
+CAPTIONS_PER_IMAGE = 1  # number of captions per image
 TRAIN_FLAG = True  # change to False if NOT training
-TRAIN_BATCH_SIZE = 2
+TRAIN_BATCH_SIZE = 32
 DATA_DIR = PARENT_DIR / 'preprocess' / 'mmca'
-IMG_SIZE = 256
+IMG_SIZE = 299
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WORKERS = 0  # 8 if DEVICE == 'cuda' else 2  # set this to 0 if [W ParallelNative.cpp:212] Warning Error
 
 # sample pickle files for filenames: ['0', '1', '2', etc.]
-FILENAMES = 'sample_filenames.pickle'
+FILENAMES = 'filenames.pickle'
 
 
 def worker_init_fn(worker_id):
@@ -46,7 +46,7 @@ def worker_init_fn(worker_id):
 
 def pad_collate(batch):
     max_input_len = float('-inf')
-
+    batch = list(filter(lambda x: x[1] is not None, batch)) 
     if TRAIN_MODE != 'extraction':
         for elem in batch:
             imgs, captions, cls_id, key, label = elem
@@ -62,19 +62,13 @@ def pad_collate(batch):
             feature[:input_length, :input_dim] = captions
 
             batch[i] = (imgs, feature, cls_id, key, input_length, label)
-            print(f"Pad Collate -- item {i} in batch")
-            print(f"caption feature.shape: {feature.shape}\n"
-                  f"imgs: {imgs}\n"
-                  f"imgs.shape: {imgs.shape}"
-                  f"cls_id: {cls_id}\n"
-                  f"key: {key}\n"
-                  f"caption input_length: {input_length}\n"
-                  f"label: {label}\n")
 
         # sort by input_length
         batch.sort(key=lambda x: x[-2], reverse=True)
 
-    return default_collate(batch)
+    #filter None files for not found files
+       
+    return default_collate(batch)    
 
 
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
@@ -131,7 +125,7 @@ class SpeechImgDataset(data.Dataset):
         if filepath.is_file():
             with open(filepath, 'rb') as f:
                 filenames = pickle.load(f)
-            print(f"Load filenames from: {filepath} {len(filenames)}")
+            #print(f"Load filenames from: {filepath} {len(filenames)}")
         else:
             filenames = []
         return filenames
@@ -146,26 +140,30 @@ class SpeechImgDataset(data.Dataset):
             data_dir = self.data_dir
             # print(f"Data dir: {data_dir}\n")
 
-            img_path_name = data_dir / 'images' / f"{key}.jpg"
-            print(f'Image paht: {img_path_name}')
+            img_path_name = data_dir / 'CelebA-HQ-img' / f"{key}.jpg"
+            #print(f'Image path: {img_path_name}')
             # img_name = f"{data_dir}/images/{key}.jpg"
             images = get_imgs(img_path_name, self.img_size, bbox, self.transform, normalize=self.norm)
 
 
         # audio mel files
         if self.data_dir.name.find('mmca') != -1:
-            audio_file = self.data_dir / 'audio' / 'mel' / key / f"{key}.npy"
+            audio_file = self.data_dir / 'audio' / 'mel_one' / key / f"{key}.npy"
             # audio_file = f"{self.data_dir}/mmca/audio/mel/{key}/{key}.npy"
         else:
-            audio_file = self.data_dir / 'mmca' / 'audio' / 'mel' / key / f"{key}.npy"
+            audio_file = self.data_dir / 'mmca' / 'audio' / 'mel_one' / key / f"{key}.npy"
             # audio_file = f"{self.data_dir}/audio/mel/{key}/{key}.npy"
-        print(f"caption audio file: {audio_file}")
+        #print(f"caption audio file: {audio_file}")
 
         if self.split == 'train':
             audio_ix = random.randint(0, self.embeddings_num)
         else:
             audio_ix = 0
-        audios = np.load(audio_file, allow_pickle=True)
+        try:
+            audios = np.load(audio_file, allow_pickle=True)
+        except:
+            audios = None
+            return images, audios, cls_id, key, label
 
         if len(audios.shape) == 2:
             audios = audios[np.newaxis, :, :]
@@ -208,7 +206,7 @@ def main():
     # Get data loader
     imsize = IMG_SIZE
     image_transform = transforms.Compose([
-        transforms.Resize(int(imsize * 76 / 64)),
+        transforms.Resize((imsize, imsize)),
         transforms.RandomCrop(imsize),
         transforms.RandomHorizontalFlip()])
 
@@ -251,7 +249,7 @@ def main():
             drop_last=False, shuffle=False, num_workers=WORKERS, collate_fn=pad_collate,
             worker_init_fn=worker_init_fn)
     else:
-        print(f'Invalid option!')
+        (f'Invalid option!')
         sys.exit(1)
 
     # Testing train_loader

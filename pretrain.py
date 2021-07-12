@@ -1,5 +1,6 @@
 import os 
 import torch
+from torch._C import device
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
@@ -19,12 +20,12 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     linear_encoder = linear_encoder.to(device)
 
     audio_trainables = [p for p in speech_encoder.parameters() if p.requires_grad]
-    image_trainables = [p for p in image_encoder.parameters() if p.requires_grad]
+    image_trainables = [p for p in linear_encoder.parameters() if p.requires_grad]
     trainables = audio_trainables + image_trainables
     
-    max_epoch = 100
-    lr = 0.0001
-    bs = 2
+    max_epoch = 10
+    lr = 0.001
+    bs = 32
 
     optimizer = torch.optim.Adam(trainables, lr=lr,
                                 weight_decay=0.001,
@@ -46,7 +47,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
         for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
 
             B = audio_input.size(0)
-
+        
             audio_input = audio_input.float().to(device)
             label = label.long().to(device)
             input_length = input_length.float().to(device)
@@ -57,19 +58,18 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
             optimizer.zero_grad()
 
             image_output = linear_encoder(image_encoder(image_input))
-            audio_output = speech_encoder(audio_input.permute(0,2,1))
+            audio_output = speech_encoder(audio_input.permute(0,2,1),input_length)
 
             loss = 0  
-            
-            loss_xy, loss_yx = batch_loss(image_output,audio_output, bs)
-            
+            loss_xy, loss_yx = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
+            #loss = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
             loss += loss_xy + loss_yx
 
             loss.backward()
             optimizer.step() 
 
-        if epoch % 5 ==0:
-            print('epoch = {} | loss = {} '.format(epoch,loss))
+        
+        print('epoch = {} | loss = {} '.format(epoch,loss))
 
 
             #implement accuracy
@@ -86,10 +86,21 @@ def adjust_learning_rate(base_lr, lr_decay, optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-def batch_loss(image_output, audio_output, bs, eps=1e-8):
-
+def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
+ 
     labels = Variable(torch.LongTensor(range(bs)))
     labels = labels.cuda()  
+
+    masks = []
+    class_ids = class_ids.detach().cpu().numpy()
+    for i in range(bs):
+        mask = (class_ids == class_ids[i]).astype(np.uint8)
+        mask[i] = 0
+        masks.append(mask.reshape((1, -1)))
+    masks = np.concatenate(masks, 0)
+    masks = torch.ByteTensor(masks)
+    masks = masks.to(torch.bool)
+    masks = masks.cuda()
 
     if image_output.dim() == 2:
         image_output = image_output.unsqueeze(0)
@@ -103,9 +114,30 @@ def batch_loss(image_output, audio_output, bs, eps=1e-8):
     cos_sim = cos_sim/norm_batch.clamp(min=eps) * 10
 
     cos_sim_xy = cos_sim.squeeze(0)
+    cos_sim_xy.data.masked_fill_(masks, -float('inf'))
     cos_sim_yx = cos_sim_xy.transpose(0, 1)
+
+    #print(cos_sim.shape)
+    #print(image_norm.shape)
 
     loss_xy = nn.CrossEntropyLoss()(cos_sim_xy, labels)
     loss_yx = nn.CrossEntropyLoss()(cos_sim_yx, labels)
     
     return loss_xy, loss_yx
+
+    #Alternative loss
+    """ size = image_output.size(0)
+
+    similarities = torch.mm(image_output, audio_output.t()) #30x30 similarity matrix
+    correct_sims = torch.diagonal(similarities)
+
+    I = torch.eye(size).cuda()
+
+    cost_1 = torch.clamp(.2 - similarities + correct_sims, min = 0)
+    cost_1 = ((1 - I) * cost_1).sort(0)[0][-size:, :]
+    cost_2 = torch.clamp(.2 - similarities + correct_sims.view(-1, 1), min = 0)
+    cost_2 = ((1 - I) * cost_2).sort(1)[0][:, -size:]
+
+    cost = cost_1 + cost_2.t()
+
+    return cost.mean() """

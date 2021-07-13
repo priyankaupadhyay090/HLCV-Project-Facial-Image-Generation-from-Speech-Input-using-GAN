@@ -28,6 +28,8 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     lr = 2e-4
     bs = 32
 
+    best_epoch, best_acc = 0, -np.inf
+
     optimizer = torch.optim.Adam(trainables, lr=lr,
                                 weight_decay=0.001,
                                 betas=(0.95, 0.999))
@@ -62,16 +64,48 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
             audio_output = speech_encoder(audio_input.permute(0,2,1),input_length)
 
             loss = 0  
+
             #loss_xy, loss_yx = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
-            loss = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
             #loss += loss_xy + loss_yx
+            loss = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
+            
 
             loss.backward()
-            optimizer.step() 
+            optimizer.step()
 
-        
+
         print('epoch = {} | loss = {} '.format(epoch,loss))
 
+        recalls = validation(speech_encoder, linear_encoder, image_encoder, test_loader)
+
+        A_r10 = recalls['A_r10']
+        I_r10 = recalls['I_r10']
+        A_r5 = recalls['A_r5']
+        I_r5 = recalls['I_r5']
+        A_r1 = recalls['A_r1']
+        I_r1 = recalls['I_r1']
+        medr_I2A = recalls['medr_I2A']
+        medr_A2I = recalls['medr_A2I']
+        avg_acc = (A_r10 + I_r10)/2
+
+        print(A_r10)
+        print(I_r10)
+        print(medr_A2I)
+        print(medr_I2A)
+        print(avg_acc)
+
+        info = ' Epoch: [{0}] Loss: {loss:.4f} | \
+                *Audio:R@1 {A_r1:.4f} R@5 {A_r5:.4f} R@10 {A_r10:.4f} medr {A_m:.4f}| *Image R@1 {I_r1:.4f} R@5 {I_r5:.4f} R@10 {I_r10:.4f} \
+               medr {I_m:.4f} \n'.format(epoch,loss=loss,A_r1=A_r1,A_r5=A_r5, A_r10=A_r10,A_m=medr_A2I,I_r1=I_r1, I_r5=I_r5, I_r10=I_r10, I_m=medr_I2A)  
+        print(info)
+
+        if avg_acc > best_acc:
+            best_epoch = epoch
+            best_acc = avg_acc
+
+            torch.save(speech_encoder.state_dict(),"best_speech_encoder.pth")
+            torch.save(linear_encoder.state_dict(),"best_linear_encoder.pth")
+            torch.save(optimizer.state_dict(), "optim_state.pth")
 
         #implement accuracy
 
@@ -79,7 +113,123 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
 
 #implement validation
 
+def validation(speech_encoder, linear_encoder, image_encoder, val_loader):
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    speech_encoder = speech_encoder.to(device)
+    speech_encoder.eval()
+    linear_encoder = linear_encoder.to(device)
+    image_encoder = image_encoder.to(device)
+    linear_encoder.eval()
+    image_encoder.eval()
+
+    I_embeddings = [] 
+    A_embeddings = [] 
+
+    I_class_ids = []
+    A_class_ids = []
+
+    with torch.no_grad():
+        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(val_loader):
+            image_input,inverse = torch.unique(image_input,sorted = False,return_inverse = True, dim=0)
+            perm = torch.arange(inverse.size(0), dtype=inverse.dtype, device=inverse.device)
+            inverse, perm = inverse.flip([0]), perm.flip([0])
+            perm = inverse.new_empty(image_input.size(0)).scatter_(0, inverse, perm)
+
+            image_input = image_input.to(device)
+            audio_input = audio_input.to(device)
+            image_input = image_input.squeeze(1)
+
+            audio_input = audio_input.float().to(device)
+            image_input = image_input.float().to(device)
+
+            image_feat = image_encoder(image_input)
+            image_output = linear_encoder(image_feat) 
+            audio_output = speech_encoder(audio_input.permute(0,2,1),input_length) 
+
+            image_output = image_output.to('cpu').detach()
+            audio_output = audio_output.to('cpu').detach()  
+
+            I_embeddings.append(image_output)
+            A_embeddings.append(audio_output)  
+            I_class_ids.append(cls_id[perm])          
+            A_class_ids.append(cls_id)
+
+        image_output = torch.cat(I_embeddings)
+        audio_output = torch.cat(A_embeddings) 
+        
+        I_ids = torch.cat(I_class_ids) 
+        A_ids = torch.cat(A_class_ids)
+
+        image_output,inverse = torch.unique(image_output,sorted = False,return_inverse = True, dim=0)
+        perm = torch.arange(inverse.size(0), dtype=inverse.dtype, device=inverse.device)
+        inverse, perm = inverse.flip([0]), perm.flip([0])
+        perm = inverse.new_empty(image_output.size(0)).scatter_(0, inverse, perm)   
+        I_ids = I_ids[perm]
+        recalls = retrieval_evaluation_all(image_output,audio_output,I_ids,A_ids)
+
+    return recalls
+
+
+
+def retrieval_evaluation_all(image_output,audio_output,I_id,A_id):  
+    img_f = normalizeFeature(image_output)
+    aud_f = normalizeFeature(audio_output) 
+    S = img_f.mm(aud_f.t())
+    
+    #image to audio retrieval
+
+    _, indx_I2A = torch.sort(S,dim=1,descending=True)
+    class_sorted_I2A = A_id[indx_I2A]
+    Correct_num_I2A_1 = sum(class_sorted_I2A[:,0]==I_id)
+    Correct_num_I2A_5 = ((class_sorted_I2A[:,:5]==I_id.unsqueeze(-1).repeat(1,5)).sum(1) != 0 ).sum()
+    Correct_num_I2A_10 = ((class_sorted_I2A[:,:10]==I_id.unsqueeze(-1).repeat(1,10)).sum(1) != 0 ).sum()
+    
+    Rank1_I2A = Correct_num_I2A_1*1.0/img_f.shape[0]
+    Rank5_I2A = Correct_num_I2A_5*1.0/img_f.shape[0]
+    Rank10_I2A = Correct_num_I2A_10*1.0/img_f.shape[0]
+    
+    Rank_I2A = torch.nonzero(class_sorted_I2A==I_id.unsqueeze(-1))
+    kr,inverse = torch.unique(Rank_I2A[:,0],sorted = False,return_inverse = True, dim=0)
+    perm = torch.arange(inverse.size(0), dtype=inverse.dtype, device=inverse.device)
+    inverse, perm = inverse.flip([0]), perm.flip([0])
+    perm = inverse.new_empty(kr.size(0)).scatter_(0, inverse, perm)
+    
+    medr_I2A = Rank_I2A[perm][:,1].median()
+
+    # for audio to image retrieval
+
+    S_T = S.T
+    _, indx_A2I = torch.sort(S_T,dim=1,descending=True)
+    class_sorted_A2I = I_id[indx_A2I]
+    Correct_num_A2I_1 = sum(class_sorted_A2I[:,0]==A_id)
+    Correct_num_A2I_5 = ((class_sorted_A2I[:,:5]==A_id.unsqueeze(-1).repeat(1,5)).sum(1) != 0 ).sum()
+    Correct_num_A2I_10 = ((class_sorted_A2I[:,:10]==A_id.unsqueeze(-1).repeat(1,10)).sum(1) != 0 ).sum()
+
+
+    Rank1_A2I_1 = Correct_num_A2I_1*1.0/aud_f.shape[0]
+    Rank1_A2I_5 = Correct_num_A2I_5*1.0/aud_f.shape[0]
+    Rank1_A2I_10 = Correct_num_A2I_10*1.0/aud_f.shape[0]
+   
+    Rank_A2I = torch.nonzero(class_sorted_A2I==A_id.unsqueeze(-1))
+    kr,inverse = torch.unique(Rank_A2I[:,0],sorted = False,return_inverse = True, dim=0)
+    perm = torch.arange(inverse.size(0), dtype=inverse.dtype, device=inverse.device)
+    inverse, perm = inverse.flip([0]), perm.flip([0])
+    perm = inverse.new_empty(kr.size(0)).scatter_(0, inverse, perm)    
+    medr_A2I = Rank_A2I[perm][:,1].median()
+
+    recalls = {'A_r1':Rank1_A2I_1, 'A_r5':Rank1_A2I_5, 'A_r10':Rank1_A2I_10,
+                'I_r1':Rank1_I2A, 'I_r5':Rank5_I2A, 'I_r10':Rank10_I2A,
+                'medr_I2A':medr_I2A, 'medr_A2I':medr_A2I}
+    return recalls
+
+
+def normalizeFeature(x):	
+    
+    x = x + 1e-10 # for avoid RuntimeWarning: invalid value encountered in divide\
+    feature_norm = torch.sum(x**2, axis=1)**0.5 # l2-norm
+    feat = x / feature_norm.unsqueeze(-1)
+    return feat
 
 def adjust_learning_rate(base_lr, lr_decay, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every lr_decay epochs"""

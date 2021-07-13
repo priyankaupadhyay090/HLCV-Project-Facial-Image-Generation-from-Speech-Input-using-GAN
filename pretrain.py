@@ -14,7 +14,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     """ model_dir = os.path.join(exp_dir,'models')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
- """
+    """
 
     speech_encoder = speech_encoder.to(device)
     image_encoder = image_encoder.to(device)
@@ -24,7 +24,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     image_trainables = [p for p in linear_encoder.parameters() if p.requires_grad]
     trainables = audio_trainables + image_trainables
     
-    max_epoch = 1000
+    max_epoch = 5
     lr = 2e-4
     bs = 32
 
@@ -37,17 +37,15 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     image_encoder.eval()
     
     epoch = 0
-
+    
     while epoch <= max_epoch:
         epoch +=1
         adjust_learning_rate(lr, 50, optimizer, epoch)
 
         speech_encoder.train()
         linear_encoder.train()
-
-        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(tqdm(train_loader,
-                                                                                              desc="training",
-                                                                                              total=len(train_loader))):
+    
+        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
 
             B = audio_input.size(0)
         
@@ -64,9 +62,9 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
             audio_output = speech_encoder(audio_input.permute(0,2,1),input_length)
 
             loss = 0  
-            loss_xy, loss_yx = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
-            #loss = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
-            loss += loss_xy + loss_yx
+            #loss_xy, loss_yx = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
+            loss = batch_loss(image_output,audio_output, bs = len(audio_input), class_ids = label)
+            #loss += loss_xy + loss_yx
 
             loss.backward()
             optimizer.step() 
@@ -75,9 +73,9 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
         print('epoch = {} | loss = {} '.format(epoch,loss))
 
 
-            #implement accuracy
+        #implement accuracy
 
-            #implement best model picking
+        #implement best model picking
 
 #implement validation
 
@@ -91,7 +89,7 @@ def adjust_learning_rate(base_lr, lr_decay, optimizer, epoch):
 
 def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
  
-    labels = Variable(torch.LongTensor(range(bs)))
+    """  labels = Variable(torch.LongTensor(range(bs)))
     labels = labels.cuda()  
 
     masks = []
@@ -119,28 +117,52 @@ def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
     cos_sim_xy = cos_sim.squeeze(0)
     cos_sim_xy.data.masked_fill_(masks, -float('inf'))
     cos_sim_yx = cos_sim_xy.transpose(0, 1)
-
-    #print(cos_sim.shape)
-    #print(image_norm.shape)
+ 
 
     loss_xy = nn.CrossEntropyLoss()(cos_sim_xy, labels)
     loss_yx = nn.CrossEntropyLoss()(cos_sim_yx, labels)
     
     return loss_xy, loss_yx
-
+    """
     #Alternative loss
-    """ size = image_output.size(0)
+    size = image_output.size(0)
 
     similarities = torch.mm(image_output, audio_output.t()) #30x30 similarity matrix
-    correct_sims = torch.diagonal(similarities)
+    diagonal = similarities.diag().view(image_output.size(0), 1)
 
-    I = torch.eye(size).cuda()
+    d1 = diagonal.expand_as(similarities)
+    d2 = diagonal.t().expand_as(similarities)
+
+    margin = 0.2
+    max_violation = False
+
+    #audio cost
+    cost_audio = (margin + similarities - d1).clamp(min = 0)
+    #image cost
+    cost_image = (margin + similarities - d2).clamp(min = 0)
+
+    mask = torch.eye(similarities.size(0)) > .5
+
+    I = Variable(mask)
+
+    if torch.cuda.is_available():
+            I = I.cuda()
+    cost_audio = cost_audio.masked_fill_(I, 0)
+    cost_image = cost_image.masked_fill_(I, 0)
+
+    if max_violation:
+            cost_audio = cost_audio.max(1)[0]
+            cost_image = cost_image.max(0)[0]
+
+    return cost_audio.sum() + cost_image.sum()
+
+    """ I = torch.eye(size).cuda()
 
     cost_1 = torch.clamp(.2 - similarities + correct_sims, min = 0)
     cost_1 = ((1 - I) * cost_1).sort(0)[0][-size:, :]
     cost_2 = torch.clamp(.2 - similarities + correct_sims.view(-1, 1), min = 0)
-    cost_2 = ((1 - I) * cost_2).sort(1)[0][:, -size:]
+    cost_2 = ((1 - I) * cost_2).sort(1)[0][:, -size:] 
 
     cost = cost_1 + cost_2.t()
 
-    return cost.mean() """
+    return cost.mean()"""

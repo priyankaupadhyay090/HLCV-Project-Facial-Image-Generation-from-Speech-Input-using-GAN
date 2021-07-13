@@ -20,11 +20,11 @@ test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test')
 
 train_loader = torch.utils.data.DataLoader(
             train_data, batch_size=32,
-            drop_last=True, shuffle=True, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+            drop_last=True, shuffle=True, num_workers=8, collate_fn=SpeechImgDataset.pad_collate)
 
 test_loader = torch.utils.data.DataLoader(
             test_data, batch_size=32,
-            drop_last=False, shuffle=False, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+            drop_last=False, shuffle=False, num_workers=8, collate_fn=SpeechImgDataset.pad_collate)
 
 
 speech_model = network.SED()

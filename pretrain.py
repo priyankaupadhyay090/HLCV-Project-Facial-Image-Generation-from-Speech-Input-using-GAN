@@ -4,6 +4,7 @@ from torch._C import device
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
+from tqdm import tqdm
 
 def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encoder):
 
@@ -23,8 +24,8 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     image_trainables = [p for p in linear_encoder.parameters() if p.requires_grad]
     trainables = audio_trainables + image_trainables
     
-    max_epoch = 10
-    lr = 0.001
+    max_epoch = 1000
+    lr = 2e-4
     bs = 32
 
     optimizer = torch.optim.Adam(trainables, lr=lr,
@@ -44,7 +45,9 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
         speech_encoder.train()
         linear_encoder.train()
 
-        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
+        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(tqdm(train_loader,
+                                                                                              desc="training",
+                                                                                              total=len(train_loader))):
 
             B = audio_input.size(0)
         

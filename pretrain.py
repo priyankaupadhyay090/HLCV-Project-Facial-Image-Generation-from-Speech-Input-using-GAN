@@ -5,16 +5,55 @@ import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
 from tqdm import tqdm
+import time
+import pickle
 
-def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encoder):
+def train(train_loader, test_loader, models):
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    torch.set_grad_enabled(True)
 
     """ model_dir = os.path.join(exp_dir,'models')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     """
+    torch.cuda.manual_seed(200)  
+    torch.cuda.manual_seed_all(200)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    speech_encoder = models[0]
+    image_encoder = models[1]
+    linear_encoder = models[2]
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.set_grad_enabled(True)
+
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    loss_meter = AverageMeter()
+    
+    progress = []
+    global_step, epoch = 0, 0
+    start_time = time.time()
+    best_epoch, best_acc = 0, -np.inf
+    exp_dir = 'outputs/pre_train'
+
+
+
+    save_model_dir = os.path.join(exp_dir,'models')
+    if not os.path.exists(save_model_dir):
+        os.makedirs(save_model_dir)
+    def _save_progress():
+        progress.append([epoch, best_epoch, best_acc, 
+                time.time() - start_time])
+        with open("%s/progress.pkl" % exp_dir, "wb") as f:
+            pickle.dump(progress, f)
+
+    
+
+    if epoch != 0:
+        speech_encoder.load_state_dict(torch.load("%s/models/audio_model_%d.pth" % (exp_dir, epoch)))
+        linear_encoder.load_state_dict(torch.load("%s/models/linear_model.%d.pth" % (exp_dir, epoch)))
+        print("loaded parameters from epoch %d" % epoch)
 
     speech_encoder = speech_encoder.to(device)
     image_encoder = image_encoder.to(device)
@@ -25,43 +64,45 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     trainables = audio_trainables + image_trainables
     
     max_epoch = 5
-    lr = 2e-4
+    lr = 0.0002
     bs = 32
-
-    best_epoch, best_acc = 0, -np.inf
+    
 
     optimizer = torch.optim.Adam(trainables, lr=lr,
                                 weight_decay=0.001,
                                 betas=(0.95, 0.999))
 
-    print("starting training")
+    print("current #steps=%s, #epochs=%s" % (global_step, epoch))
+    print("start training...")
 
     image_encoder.eval()
     
-    epoch = 0
     
     while epoch <= max_epoch:
         epoch +=1
         adjust_learning_rate(lr, 50, optimizer, epoch)
-
+        
+        end_time = time.time()
         speech_encoder.train()
         linear_encoder.train()
     
-        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
-
+        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(tqdm(train_loader,
+                                                                                              desc='training',
+                                                                                              total=len(train_loader))):
             B = audio_input.size(0)
         
             audio_input = audio_input.float().to(device)
             label = label.long().to(device)
             input_length = input_length.float().to(device)
 
-            image_input = image_input.to(device)
+            image_input = image_input.float().to(device)
             image_input = image_input.squeeze(1)
 
             optimizer.zero_grad()
-
-            image_output = linear_encoder(image_encoder(image_input))
-            audio_output = speech_encoder(audio_input.permute(0,2,1),input_length)
+            
+            image_feat = image_encoder(image_input)
+            image_output = linear_encoder(image_feat)
+            audio_output = speech_encoder(audio_input,input_length)
 
             loss = 0  
 
@@ -73,6 +114,14 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
             loss.backward()
             optimizer.step()
 
+            loss_meter.update(loss.item(), B)
+            batch_time.update(time.time() - end_time)
+
+            if i % 5 == 0:
+                print('iteration = %d | loss = %f '%(i,loss))
+
+            end_time = time.time()
+            global_step += 1
 
         print('epoch = {} | loss = {} '.format(epoch,loss))
 
@@ -94,24 +143,27 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
         print(medr_I2A)
         print(avg_acc)
 
-        info = ' Epoch: [{0}] Loss: {loss:.4f} | \
+        info = ' Epoch: [{0}] Loss: {loss_meter:.4f} | \
                 *Audio:R@1 {A_r1:.4f} R@5 {A_r5:.4f} R@10 {A_r10:.4f} medr {A_m:.4f}| *Image R@1 {I_r1:.4f} R@5 {I_r5:.4f} R@10 {I_r10:.4f} \
-               medr {I_m:.4f} \n'.format(epoch,loss=loss,A_r1=A_r1,A_r5=A_r5, A_r10=A_r10,A_m=medr_A2I,I_r1=I_r1, I_r5=I_r5, I_r10=I_r10, I_m=medr_I2A)  
+               medr {I_m:.4f} \n'.format(epoch,loss_meter=loss_meter,A_r1=A_r1,A_r5=A_r5, A_r10=A_r10,A_m=medr_A2I,I_r1=I_r1, I_r5=I_r5, I_r10=I_r10, I_m=medr_I2A)  
         print(info)
+
+        save_path = os.path.join(exp_dir, 'baseline.text')
+        with open(save_path, "a") as file:
+            file.write(info)
 
         if avg_acc > best_acc:
             best_epoch = epoch
             best_acc = avg_acc
 
-            torch.save(speech_encoder.state_dict(),"best_speech_encoder.pth")
-            torch.save(linear_encoder.state_dict(),"best_linear_encoder.pth")
-            torch.save(optimizer.state_dict(), "optim_state.pth")
+            torch.save(speech_encoder.state_dict(),
+                    "%s/models/best_audio_model.pth" % (exp_dir))
+            torch.save(linear_encoder.state_dict(),
+                "%s/models/best_linear_model.pth" % (exp_dir))
+            torch.save(optimizer.state_dict(), "%s/models/optim_state.pth" % (exp_dir))
+        
+        _save_progress()
 
-        #implement accuracy
-
-        #implement best model picking
-
-#implement validation
 
 def validation(speech_encoder, linear_encoder, image_encoder, val_loader):
 
@@ -145,7 +197,7 @@ def validation(speech_encoder, linear_encoder, image_encoder, val_loader):
 
             image_feat = image_encoder(image_input)
             image_output = linear_encoder(image_feat) 
-            audio_output = speech_encoder(audio_input.permute(0,2,1),input_length) 
+            audio_output = speech_encoder(audio_input,input_length) 
 
             image_output = image_output.to('cpu').detach()
             audio_output = audio_output.to('cpu').detach()  
@@ -316,3 +368,20 @@ def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
     cost = cost_1 + cost_2.t()
 
     return cost.mean()"""
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count

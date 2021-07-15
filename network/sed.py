@@ -21,6 +21,8 @@ class SED(nn.Module):
 
     def forward(self, x, l):
 
+        x = input.transpose(2,1)
+
         x = self.conv1(x)
         x = self.bnorm1(x)
         x = self.conv2(x)
@@ -35,6 +37,7 @@ class SED(nn.Module):
         x, lens = nn.utils.rnn.pad_packed_sequence(x, batch_first = True)
 
         x = self.att(x)
+        x = torch.nn.functional.normalize(x, p=2, dim=1)
 
         return x
 

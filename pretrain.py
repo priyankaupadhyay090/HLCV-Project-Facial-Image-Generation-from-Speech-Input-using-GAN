@@ -402,7 +402,7 @@ def feat_extract_co(audio_model, path):
     if torch.cuda.is_available() and torch.cuda.device_count() > 1:
         if not isinstance(audio_model, torch.nn.DataParallel):
             audio_model = nn.DataParallel(audio_model)
-
+    print(f"device: {device} | n_gpu: {torch.cuda.device_count()}")
     logger.info(f"device: {device} | n_gpu: {torch.cuda.device_count()}")
 
     # load saved model for eval

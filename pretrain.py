@@ -523,12 +523,12 @@ def feat_extract_co(audio_model, path):
             cap = audios[i]
             cap = torch.tensor(cap)
             input_length = cap.shape[0]
-            input_length  = torch.tensor(input_length)
+            input_length = torch.tensor(input_length)
             audio_input = cap.float().to(device)
             audio_input = audio_input.unsqueeze(0)
             input_length = input_length.float().to(device)
             input_length = input_length.unsqueeze(0)
-            audio_output = audio_model(audio_input,input_length)
+            audio_output = audio_model(audio_input, input_length)
             audio_output = audio_output.cpu().detach().numpy()
 
             if i == 0:

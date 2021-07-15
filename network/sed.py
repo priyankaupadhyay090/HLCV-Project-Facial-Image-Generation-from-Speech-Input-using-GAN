@@ -19,9 +19,9 @@ class SED(nn.Module):
         self.gru = torch.nn.GRU(128, 512, num_layers = 2, bidirectional = True, batch_first = True)
         self.att = multi_attention(in_size = 1024, hidden_size = 128, n_heads = 1)
 
-    def forward(self, x, l):
+    def forward(self, input, l):
 
-        x = input.transpose(2,1)
+        x = input.transpose(2, 1)
 
         x = self.conv1(x)
         x = self.bnorm1(x)

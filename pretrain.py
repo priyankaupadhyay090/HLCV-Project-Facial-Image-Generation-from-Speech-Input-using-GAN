@@ -14,7 +14,7 @@ from sen_utils import pre_utils
 
 logger = logging.getLogger(__name__)
 parent_dir = Path(__file__).resolve().parent
-saving_dir = parent_dir / "saved_models"
+saving_dir = parent_dir / "SEN_saved_models"
 
 
 def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encoder):
@@ -45,6 +45,10 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
         if not isinstance(linear_encoder, torch.nn.DataParallel):
             linear_encoder = nn.DataParallel(linear_encoder)
 
+    if epoch != 0:
+        speech_encoder.load_state_dict(torch.load(saving_dir / f"best_speech_encoder_{epoch}.pt"))
+        linear_encoder.load_state_dict(torch.load(saving_dir / f"best_linear_encoder_{epoch}.pt"))
+
     speech_encoder = speech_encoder.to(device)
     image_encoder = image_encoder.to(device)
     linear_encoder = linear_encoder.to(device)
@@ -54,7 +58,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     image_trainables = [p for p in linear_encoder.parameters() if p.requires_grad]
     trainables = audio_trainables + image_trainables
 
-    max_epoch = 30
+    max_epoch = 120
     lr = 1e-4
     lr_decay = 50
     bs = 128
@@ -113,7 +117,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
 
             if i % 5 == 0:
                 print(f"epoch: {epoch} - iteration: {i} | loss: {loss}")
-                logger.info(f"epoch: {epoch} - iteration: {i} | loss: {loss}")
+                logger.debug(f"epoch: {epoch} - iteration: {i} | loss: {loss}")
 
             end_time = time.time()
             global_step += 1
@@ -150,15 +154,15 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
                 best_acc = avg_acc
 
                 try:
-                    torch.save(speech_encoder.state_dict(), saving_dir / "best_speech_encoder.pth")
-                    torch.save(linear_encoder.state_dict(), saving_dir / "best_linear_encoder.pth")
-                    torch.save(optimizer.state_dict(), saving_dir / "optim_state.pth")
+                    torch.save(speech_encoder.state_dict(), saving_dir / f"best_speech_encoder_{best_epoch}.pt")
+                    torch.save(linear_encoder.state_dict(), saving_dir / f"best_linear_encoder_{best_epoch}.pt")
+                    torch.save(optimizer.state_dict(), saving_dir / f"optim_state_{best_epoch}.pt")
                 except FileNotFoundError:
                     saving_dir.mkdir(parents=True, exist_ok=False)
                     print(f"Creating {saving_dir} to save best models...")
-                    torch.save(speech_encoder.state_dict(), saving_dir / "best_speech_encoder.pth")
-                    torch.save(linear_encoder.state_dict(), saving_dir / "best_linear_encoder.pth")
-                    torch.save(optimizer.state_dict(), saving_dir / "optim_state.pth")
+                    torch.save(speech_encoder.state_dict(), saving_dir / f"best_speech_encoder_{best_epoch}.pt")
+                    torch.save(linear_encoder.state_dict(), saving_dir / f"best_linear_encoder_{best_epoch}.pt")
+                    torch.save(optimizer.state_dict(), saving_dir / f"optim_state_{best_epoch}.pt")
                 logger.info(f"best models and optimizer state saved in {saving_dir}")
         # implement accuracy
 

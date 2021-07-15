@@ -20,7 +20,7 @@ SAVING_DIR = PARENT_DIR / "SEN_saved_models"
 MANUAL_SEED = 200
 BATCH_SIZE = 32
 WORKERS = 8
-MODAL = "train"  # | "extraction"
+MODAL = "extraction"  # | "train"
 
 if not SAVING_DIR.exists():
     SAVING_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,7 +93,7 @@ speech_model = network.SED()
 image_model = network.Inception_V3_Model()
 linear_model = network.Linear_Encoder()
 
-if MODAL == 'train':
+if MODAL == "train":
     pretrain.train(train_loader, test_loader, speech_model, image_model, linear_model)
     print("model trained")
     saved_model_filename = SAVING_DIR / "last_epoch_state_dict_speech_encoder.pt"
@@ -101,7 +101,7 @@ if MODAL == 'train':
     torch.save(speech_model.state_dict(), saved_model_filename)
     logger.info(f"====================TRAINING FINISHED====================")
 
-if MODAL == 'extraction':
+if MODAL == "extraction":
     pretrain.feat_extract_co(speech_model, DATA_DIR)
     logger.info(f"====================SPEECH FEATURES EXTRACTION FINISHED====================")
 

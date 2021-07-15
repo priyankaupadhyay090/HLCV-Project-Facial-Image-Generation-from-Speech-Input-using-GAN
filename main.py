@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from torch.autograd import Variable
+from torchvision import transforms
 from pathlib import Path
 import network
 import pretrain
@@ -17,6 +18,9 @@ DATA_DIR = PARENT_DIR / 'preprocess' / 'mmca'
 LOGGING_DIR = PARENT_DIR / 'logging'
 SAVING_DIR = PARENT_DIR / "SEN_saved_models"
 MANUAL_SEED = 200
+BATCH_SIZE = 32
+WORKERS = 8
+MODAL = "train"  # | "extraction"
 
 if not SAVING_DIR.exists():
     SAVING_DIR.mkdir(parents=True, exist_ok=True)
@@ -28,8 +32,7 @@ try:
 except FileExistsError:
     print(f"Logging directory: {LOGGING_DIR} already exists.")
 time_now = datetime.now()
-logging_filename = LOGGING_DIR / f"SEN_training_log_{time_now:%d_%m_%Y_%H_%M_%S}.txt"
-
+logging_filename = LOGGING_DIR / f"SEN_{MODAL}_log_{time_now:%d_%m_%Y_%H_%M_%S}.txt"
 
 # set seed
 random.seed(MANUAL_SEED)
@@ -52,28 +55,54 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -   %(message
                     filename=logging_filename,
                     level=logging.INFO)
 
+image_transform = transforms.Compose([
+    transforms.RandomCrop(299),
+    transforms.RandomHorizontalFlip()])
 
-train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train')
-test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test')
+if MODAL == 'train':
 
-train_loader = torch.utils.data.DataLoader(
-            train_data, batch_size=32,
-            drop_last=True, shuffle=True, num_workers=8,
-            collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform=image_transform)
+    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform=image_transform)
 
-test_loader = torch.utils.data.DataLoader(
-            test_data, batch_size=32,
-            drop_last=False, shuffle=False, num_workers=8,
-            collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+    train_loader = torch.utils.data.DataLoader(
+        train_data, batch_size=BATCH_SIZE,
+        drop_last=True, shuffle=True, num_workers=WORKERS,
+        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
 
+    test_loader = torch.utils.data.DataLoader(
+        test_data, batch_size=BATCH_SIZE,
+        drop_last=False, shuffle=False, num_workers=WORKERS,
+        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+
+elif MODAL == 'extraction':
+
+    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform=image_transform)
+    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform=image_transform)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_data, batch_size=BATCH_SIZE,
+        drop_last=False, shuffle=False, num_workers=WORKERS,
+        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+
+    test_loader = torch.utils.data.DataLoader(
+        test_data, batch_size=BATCH_SIZE,
+        drop_last=False, shuffle=False, num_workers=WORKERS,
+        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
 
 speech_model = network.SED()
 image_model = network.Inception_V3_Model()
 linear_model = network.Linear_Encoder()
 
-pretrain.train(train_loader, test_loader, speech_model, image_model, linear_model)
-print("model trained")
-saved_model_filename = SAVING_DIR / "last_epoch_state_dict_speech_encoder.pt"
-logger.info(f"Training finished, saving last epoch speech model to {saved_model_filename}")
-torch.save(speech_model.state_dict(), saved_model_filename)
-logger.info(f"====================FINISHED====================")
+if MODAL == 'train':
+    pretrain.train(train_loader, test_loader, speech_model, image_model, linear_model)
+    print("model trained")
+    saved_model_filename = SAVING_DIR / "last_epoch_state_dict_speech_encoder.pt"
+    logger.info(f"Training finished, saving last epoch speech model to {saved_model_filename}")
+    torch.save(speech_model.state_dict(), saved_model_filename)
+    logger.info(f"====================TRAINING FINISHED====================")
+
+if MODAL == 'extraction':
+    pretrain.feat_extract_co(speech_model, DATA_DIR)
+    logger.info(f"====================SPEECH FEATURES EXTRACTION FINISHED====================")
+
+

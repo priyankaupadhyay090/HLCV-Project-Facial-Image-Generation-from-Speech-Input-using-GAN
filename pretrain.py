@@ -1,4 +1,6 @@
 import os
+import pickle
+
 import torch
 from torch._C import device
 import torch.nn as nn
@@ -391,3 +393,160 @@ def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
     cost = cost_1 + cost_2.t()
 
     return cost.mean()"""
+
+
+def feat_extract_co(audio_model, path):
+    logger.info(f"================EXTRACTING SPEECH FEATURES====================")
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        if not isinstance(audio_model, torch.nn.DataParallel):
+            audio_model = nn.DataParallel(audio_model)
+
+    logger.info(f"device: {device} | n_gpu: {torch.cuda.device_count()}")
+
+    # load saved model for eval
+    audio_model.load_state_dict(torch.load(saving_dir / f"best_speech_encoder_100.pt"))  #best_audio_model
+    audio_model = audio_model.to(device)
+    audio_model.eval()
+
+
+    # extract speech embeding of train set
+    info = '***starting extract speech embedding feature of TRAINSET***\n'
+    print(info)
+
+    features_saving_dir = saving_dir / "extraction"
+    if not features_saving_dir.is_dir():
+        features_saving_dir.mkdir(parents=True, exist_ok=False)
+
+    # loading filenams in traing set
+    filepath = path / "train" / "filenames.pickle"
+    if filepath.is_file():
+        with open(filepath, 'rb') as f:
+            filenames = pickle.load(f)
+        print(f"Loaded {len(filenames)} train filenames from {filepath}.")
+        logger.info(f"Loaded {len(filenames)} train filenames from {filepath}.")
+
+    """ if path.find('flickr') != -1:        
+        data_dir = '%s/flickr_audio' % path
+    elif path.find('places') != -1:
+        data_dir = '%s/audio' % path
+    elif path.find('birds') != -1:
+        data_dir = '%s/CUB_200_2011' % path
+    elif path.find('flower') != -1:
+        data_dir = '%s/Oxford102' % path
+    audio_feat = []
+    j = 0 """
+
+    audio_feat = []
+    j = 0
+    data_dir = path / "audio" / "mel_one"
+    logger.info(f"audio files loading from: {data_dir}\n")
+
+    for key in filenames:
+        audio_file = data_dir / key / f"{key}.npy"
+        audios = np.load(audio_file, allow_pickle=True)
+        if len(audios.shape) == 2:
+            audios = audios[np.newaxis, :, :]
+        num_cap = audios.shape[0]
+        if num_cap != 1:
+            print('error with the number of captions')
+            print(audio_file)
+            logger.debug(f"error with number of captions: \n"
+                         f"{audio_file}")
+
+        for i in range(num_cap):
+            cap = audios[i]
+            cap = torch.tensor(cap)
+            input_length = cap.shape[0]
+            input_length  = torch.tensor(input_length)
+            audio_input = cap.float().to(device)
+            audio_input = audio_input.unsqueeze(0)
+            input_length = input_length.float().to(device)
+            input_length = input_length.unsqueeze(0)
+            audio_output = audio_model(audio_input,input_length)
+            audio_output = audio_output.cpu().detach().numpy()
+            if i == 0:
+                outputs = audio_output
+            else:
+                outputs = np.vstack((outputs, audio_output))
+
+        audio_feat.append(outputs)
+
+        if j % 50 == 0:
+            print(f"Extracted the {j}-th audio feature")
+            logger.info(f"Extracted the {j}-th audio feature")
+
+        j += 1
+
+    # saving extracted speech embeddings from train set
+    with open(features_saving_dir / f"speech_embeddings_train.pickle", "wb") as f:
+        pickle.dump(audio_feat, f)
+
+    info = f'***extracting speech embedding feature of TRAINSET from {data_dir} is finished***\n'
+    print(info)
+    logger.info(info)
+    logger.info(f"extracted speech embeddings saved in {features_saving_dir}")
+    #save_path = os.path.join(exp_dir, 'embedding_extract.txt')
+    #with open(save_path, "a") as file:
+    #    file.write(info)
+
+    # extract speech embedding of test set
+    info = '***starting extract speech embedding feature of TESTSET***\n'
+    print(info)
+    logger.info(info)
+
+    # loading filenames in test set
+    filepath = path / "test" / "filenames.pickle"
+    if filepath.is_file():
+        with open(filepath, 'rb') as f:
+            filenames = pickle.load(f)
+        print(f"Loaded {len(filenames)} test filenames from {filepath}.")
+        logger.info(f"Loaded {len(filenames)} test filenames from {filepath}.")
+
+    audio_feat = []
+    j = 0
+    logger.info(f"audio files loading from: {data_dir}\n")
+    for key in filenames:
+        audio_file = data_dir / key / f"{key}.npy"
+        audios = np.load(audio_file, allow_pickle=True)
+        if len(audios.shape) == 2:
+            audios = audios[np.newaxis, :, :]
+        num_cap = audios.shape[0]
+        if num_cap != 1:
+            print('error with the number of captions')
+            print(audio_file)
+            logger.debug(f"error with number of captions: \n"
+                         f"{audio_file}")
+
+        for i in range(num_cap):
+            cap = audios[i]
+            cap = torch.tensor(cap)
+            input_length = cap.shape[0]
+            input_length  = torch.tensor(input_length)
+            audio_input = cap.float().to(device)
+            audio_input = audio_input.unsqueeze(0)
+            input_length = input_length.float().to(device)
+            input_length = input_length.unsqueeze(0)
+            audio_output = audio_model(audio_input,input_length)
+            audio_output = audio_output.cpu().detach().numpy()
+
+            if i == 0:
+                outputs = audio_output
+            else:
+                outputs = np.vstack((outputs, audio_output))
+
+        audio_feat.append(outputs)
+
+        if j % 50 == 0:
+            print(f"Extracted the {j}-th audio feature")
+            logger.info(f"Extracted the {j}-th audio feature")
+        j += 1
+
+    info = f'***extracting speech embedding feature of TESTSET from {data_dir} is finished***\n'
+    print(info)
+    logger.info(info)
+
+    with open(features_saving_dir / f"speech_embeddings_test.pickle", "wb") as f:
+        pickle.dump(audio_feat, f)
+    logger.info(f"extracted speech embeddings saved in {features_saving_dir}")

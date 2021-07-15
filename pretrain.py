@@ -102,7 +102,8 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
             optimizer.zero_grad()
 
             image_output = linear_encoder(image_encoder(image_input))
-            audio_output = speech_encoder(audio_input.permute(0, 2, 1), input_length)
+            #  audio_output = speech_encoder(audio_input.permute(0, 2, 1), input_length)  # for SED version without input.transpose
+            audio_output = speech_encoder(audio_input, input_length)
 
             loss = 0
 
@@ -221,7 +222,8 @@ def validation(speech_encoder, linear_encoder, image_encoder, val_loader):
 
             image_feat = image_encoder(image_input)
             image_output = linear_encoder(image_feat)
-            audio_output = speech_encoder(audio_input.permute(0, 2, 1), input_length)
+            # audio_output = speech_encoder(audio_input.permute(0, 2, 1), input_length)  # for SED version without input.transpose
+            audio_output = speech_encoder(audio_input, input_length)
 
             image_output = image_output.to('cpu').detach()
             audio_output = audio_output.to('cpu').detach()

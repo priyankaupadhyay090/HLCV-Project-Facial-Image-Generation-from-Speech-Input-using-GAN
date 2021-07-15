@@ -439,6 +439,7 @@ def feat_extract_co(audio_model, path):
     j = 0 """
 
     audio_feat = []
+    missing_training_audios = []
     j = 0
     data_dir = path / "audio" / "mel_one"
     logger.info(f"audio files loading from: {data_dir}\n")
@@ -450,6 +451,7 @@ def feat_extract_co(audio_model, path):
         except FileNotFoundError:
             print(f"Skippped missing mel spectrogram of this file: {audio_file}")
             logger.info(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            missing_training_audios.append(key)
             continue
 
         if len(audios.shape) == 2:
@@ -492,10 +494,20 @@ def feat_extract_co(audio_model, path):
     info = f'***extracting speech embedding feature of TRAINSET from {data_dir} is finished***\n'
     print(info)
     logger.info(info)
-    logger.info(f"extracted speech embeddings saved in {features_saving_dir}")
+    logger.info(f"extracted speech embeddings saved in {features_saving_dir}\n")
+
+    # saving list of missing filenames
+    missing_filepath = path / "train" / "missing_filenames.pickle"
+    with open(missing_filepath, 'wb') as f:
+        pickle.dump(missing_training_audios, f)
+    print(f"Saving {len(missing_training_audios)} missing train filenames to {missing_filepath}.")
+    logger.info(f"Saving {len(missing_training_audios)} missing train filenames to {missing_filepath}.")
+
+
     #save_path = os.path.join(exp_dir, 'embedding_extract.txt')
     #with open(save_path, "a") as file:
     #    file.write(info)
+
 
     # extract speech embedding of test set
     info = '***starting extract speech embedding feature of TESTSET***\n'
@@ -511,6 +523,7 @@ def feat_extract_co(audio_model, path):
         logger.info(f"Loaded {len(filenames)} test filenames from {filepath}.")
 
     audio_feat = []
+    missing_testing_audios = []
     j = 0
     logger.info(f"audio files loading from: {data_dir}\n")
     for key in filenames:
@@ -520,6 +533,7 @@ def feat_extract_co(audio_model, path):
         except FileNotFoundError:
             print(f"Skippped missing mel spectrogram of this file: {audio_file}")
             logger.info(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            missing_testing_audios.append(key)
             continue
 
         if len(audios.shape) == 2:
@@ -545,6 +559,7 @@ def feat_extract_co(audio_model, path):
 
             if i == 0:
                 outputs = audio_output
+
             else:
                 outputs = np.vstack((outputs, audio_output))
 
@@ -562,3 +577,10 @@ def feat_extract_co(audio_model, path):
     with open(features_saving_dir / f"speech_embeddings_test.pickle", "wb") as f:
         pickle.dump(audio_feat, f)
     logger.info(f"extracted speech embeddings saved in {features_saving_dir}")
+
+    # saving list of missing filenames
+    missing_filepath = path / "test" / "missing_filenames.pickle"
+    with open(missing_filepath, 'wb') as f:
+        pickle.dump(missing_testing_audios, f)
+    print(f"Saving {len(missing_testing_audios)} missing test filenames to {missing_filepath}.")
+    logger.info(f"Saving {len(missing_testing_audios)} missing test filenames to {missing_filepath}.")

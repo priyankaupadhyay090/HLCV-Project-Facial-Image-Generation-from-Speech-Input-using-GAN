@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,18 +12,20 @@ class SED(nn.Module):
     def __init__(self):
         super(SED, self).__init__()
 
-        self.conv1 = nn.Conv1d(40, 50, kernel_size = 6, stride = 2)
-        self.conv2 = nn.Conv1d(50, 128, kernel_size = 6, stride = 2)
+        self.conv1 = nn.Conv1d(40, 64, kernel_size = 6, stride = 2)
+        self.conv2 = nn.Conv1d(64, 128, kernel_size = 6, stride = 2)
 
-        self.bnorm1 = nn.BatchNorm1d(50)
+        self.bnorm1 = nn.BatchNorm1d(64)
         self.bnorm2 = nn.BatchNorm1d(128)
 
-        self.gru = torch.nn.GRU(128, 512, num_layers = 2, bidirectional = True, batch_first = True,)
+        self.gru = torch.nn.GRU(128, 512, num_layers = 2, bidirectional = True, batch_first = True)
         self.att = multi_attention(in_size = 1024, hidden_size = 128, n_heads = 1)
 
     def forward(self, input, l):
-        input = input.transpose(2,1)
-        x = self.conv1(input)
+        
+        x = input.transpose(2,1)
+
+        x = self.conv1(x)
         x = self.bnorm1(x)
         x = self.conv2(x)
         x = self.bnorm2(x)
@@ -35,8 +39,6 @@ class SED(nn.Module):
         x, lens = nn.utils.rnn.pad_packed_sequence(x, batch_first = True)
 
         x = self.att(x)
-
-        x = nn.functional.normalize(x, p=2, dim=1)  
 
         return x
 

@@ -445,7 +445,13 @@ def feat_extract_co(audio_model, path):
 
     for key in filenames:
         audio_file = data_dir / key / f"{key}.npy"
-        audios = np.load(audio_file, allow_pickle=True)
+        try:
+            audios = np.load(audio_file, allow_pickle=True)
+        except FileNotFoundError:
+            print(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            logger.info(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            continue
+
         if len(audios.shape) == 2:
             audios = audios[np.newaxis, :, :]
         num_cap = audios.shape[0]
@@ -509,7 +515,13 @@ def feat_extract_co(audio_model, path):
     logger.info(f"audio files loading from: {data_dir}\n")
     for key in filenames:
         audio_file = data_dir / key / f"{key}.npy"
-        audios = np.load(audio_file, allow_pickle=True)
+        try:
+            audios = np.load(audio_file, allow_pickle=True)
+        except FileNotFoundError:
+            print(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            logger.info(f"Skippped missing mel spectrogram of this file: {audio_file}")
+            continue
+
         if len(audios.shape) == 2:
             audios = audios[np.newaxis, :, :]
         num_cap = audios.shape[0]

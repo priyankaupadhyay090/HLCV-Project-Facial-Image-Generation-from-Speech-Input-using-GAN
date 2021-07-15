@@ -4,7 +4,6 @@ from torch._C import device
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
-from tqdm import tqdm
 import time
 import pickle
 
@@ -86,9 +85,7 @@ def train(train_loader, test_loader, models):
         speech_encoder.train()
         linear_encoder.train()
     
-        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(tqdm(train_loader,
-                                                                                              desc='training',
-                                                                                              total=len(train_loader))):
+        for i, (image_input, audio_input, cls_id, key, input_length, label) in enumerate(train_loader):
             B = audio_input.size(0)
 
             audio_input = audio_input.float().to(device)
@@ -370,6 +367,9 @@ def batch_loss(image_output, audio_output, bs, class_ids, eps=1e-8):
 
     return cost.mean()"""
 
+
+
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -386,3 +386,147 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+def feat_extract_co(audio_model, path,args):
+    #audio_model = nn.DataParallel(audio_model)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
+    exp_dir = 'outputs/pre_train'  #+ '/' + 'pre_train'
+
+    audio_model.load_state_dict(torch.load("%s/models/best_audio_model.pth" % (exp_dir)))  #best_audio_model
+    
+
+    audio_model = audio_model.to(device)  
+    
+    audio_model.eval()     
+    
+    
+    # extract speech embeding of train set
+    info = 'starting extract speech embedding feature of trainset \n'
+    print (info)            
+    save_path = os.path.join(exp_dir, 'embedding_extract.txt')
+    with open(save_path, "a") as file:
+        file.write(info)
+    
+    filepath = '%s/%s/filenames.pickle' % (path, 'train')
+    
+    
+    if os.path.isfile(filepath):
+        with open(filepath, 'rb') as f:
+            filenames = pickle.load(f)    
+        print('Load filenames from: %s (%d)' % (filepath, len(filenames)))       
+
+    """ if path.find('flickr') != -1:        
+        data_dir = '%s/flickr_audio' % path
+    elif path.find('places') != -1:
+        data_dir = '%s/audio' % path
+    elif path.find('birds') != -1:
+        data_dir = '%s/CUB_200_2011' % path
+    elif path.find('flower') != -1:
+        data_dir = '%s/Oxford102' % path
+    audio_feat = []
+    j = 0 """
+
+    audio_feat = []
+    j = 0
+    data_dir = path
+
+    for key in filenames:    
+        audio_file = '%s/audio/mel_one/%s/%s.npy' % (data_dir, key, key) 
+
+        audios = np.load(audio_file,allow_pickle=True)
+        if len(audios.shape)==2:
+            audios = audios[np.newaxis,:,:] 
+        num_cap = audios.shape[0]
+        if num_cap!= 1:
+            print('error with the number of captions')
+            print(audio_file)
+        for i in range(num_cap):
+            cap = audios[i]
+            cap = torch.tensor(cap)
+            input_length = cap.shape[0]
+            input_length  = torch.tensor(input_length)
+            audio_input = cap.float().to(device)  
+            audio_input = audio_input.unsqueeze(0)  
+            input_length = input_length.float().to(device)        
+            input_length = input_length.unsqueeze(0)
+            audio_output = audio_model(audio_input,input_length)
+            audio_output = audio_output.cpu().detach().numpy()
+            if i == 0:
+                outputs = audio_output
+            else:
+                outputs = np.vstack((outputs,audio_output))
+
+        audio_feat.append(outputs)
+        
+        if j % 50 ==0:
+            print('extracted the %ith audio feature'%j)   
+        j += 1
+
+    with open("%s/speech_embeddings_train.pickle" % (exp_dir), "wb") as f:
+            pickle.dump(audio_feat, f)
+
+    info = 'extracting speech embedding feature of trainset is finished \n'
+    print (info)            
+    save_path = os.path.join(exp_dir, 'embedding_extract.txt')
+    with open(save_path, "a") as file:
+        file.write(info)
+    
+    #extract speech embedding of test set
+    info = 'starting extract speech embedding feature of testset \n'
+    print (info)            
+
+    with open(save_path, "a") as file:
+        file.write(info)
+    
+    filepath = '%s/%s/filenames.pickle' % (path, 'test')
+    if os.path.isfile(filepath):
+        with open(filepath, 'rb') as f:
+            filenames = pickle.load(f)    
+        print('Load filenames from: %s (%d)' % (filepath, len(filenames)))       
+
+    audio_feat = []
+    j = 0
+    for key in filenames:    
+        audio_file = '%s/audio/mel_one/%s/%s.npy' % (data_dir, key, key) 
+    
+        audios = np.load(audio_file,allow_pickle=True)
+        if len(audios.shape)==2:
+            audios = audios[np.newaxis,:,:] 
+        num_cap = audios.shape[0]
+        if num_cap!=1:
+            print('error with the number of captions')
+            print(audio_file)
+        for i in range(num_cap):
+            cap = audios[i]
+            cap = torch.tensor(cap)
+            input_length = cap.shape[0]
+            input_length  = torch.tensor(input_length)
+            audio_input = cap.float().to(device)  
+            audio_input = audio_input.unsqueeze(0)  
+            input_length = input_length.float().to(device)        
+            input_length = input_length.unsqueeze(0)
+            audio_output = audio_model(audio_input,input_length)
+            audio_output = audio_output.cpu().detach().numpy()
+            if i == 0:
+                outputs = audio_output
+            else:
+                outputs = np.vstack((outputs,audio_output))
+
+        audio_feat.append(outputs)
+        
+        if j % 50 ==0:
+            print('extracted the %ith audio feature'%j)   
+        j += 1
+
+    info = 'extracting speech embedding feature of testset is finished \n'
+    print (info)            
+    with open(save_path, "a") as file:
+        file.write(info)
+    
+    with open("%s/speech_embeddings_test.pickle" % (exp_dir), "wb") as f:
+            pickle.dump(audio_feat, f)
+    
+    info = 'speech embedding is saved \n'
+    print (info)            
+    with open(save_path, "a") as file:
+        file.write(info)

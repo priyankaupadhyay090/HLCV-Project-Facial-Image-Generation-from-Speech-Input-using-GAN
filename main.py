@@ -17,6 +17,7 @@ PARENT_DIR = Path().resolve()
 DATA_DIR = PARENT_DIR / 'preprocess' / 'mmca'
 LOGGING_DIR = PARENT_DIR / 'logging'
 SAVING_DIR = PARENT_DIR / "saved_models"
+MODAL = 'training'
 
 if not SAVING_DIR.exists():
     SAVING_DIR.mkdir(parents=True, exist_ok=True)
@@ -42,17 +43,31 @@ image_transform = transforms.Compose([
     transforms.RandomCrop(299),
     transforms.RandomHorizontalFlip()])
 
-train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform = image_transform,)
-test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform = image_transform)
+if MODAL == 'training':
 
-train_loader = torch.utils.data.DataLoader(
-            train_data, batch_size=32,
-            drop_last=True, shuffle=True, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform = image_transform)
+    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform = image_transform)
 
-test_loader = torch.utils.data.DataLoader(
-            test_data, batch_size=32,
-            drop_last=False, shuffle=False, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+    train_loader = torch.utils.data.DataLoader(
+                train_data, batch_size=32,
+                drop_last=True, shuffle=True, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
 
+    test_loader = torch.utils.data.DataLoader(
+                test_data, batch_size=32,
+                drop_last=False, shuffle=False, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+
+elif MODAL == 'extraction':
+
+    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform = image_transform)
+    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform = image_transform)
+
+    train_loader = torch.utils.data.DataLoader(
+                train_data, batch_size=32,
+                drop_last=False, shuffle=False, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
+
+    test_loader = torch.utils.data.DataLoader(
+                test_data, batch_size=32,
+                drop_last=False, shuffle=False, num_workers=0, collate_fn=SpeechImgDataset.pad_collate)
 
 speech_model = network.SED()
 image_model = network.Inception_V3_Model()
@@ -60,9 +75,8 @@ linear_model = network.Linear_Encoder()
 
 models = [speech_model, image_model, linear_model]
 
-pretrain.train(train_loader, test_loader, models)
-print("model trained")
-saved_model_filename = SAVING_DIR / "state_dict_speech_model.pt"
-logger.info(f"Training finished, saving speech model to {saved_model_filename}")
-torch.save(speech_model.state_dict(), saved_model_filename)
-logger.info(f"====================FINISHED====================")
+if MODAL == 'train':
+    pretrain.train(train_loader, test_loader, models)
+    print("model trained")
+if MODAL == 'extraction':
+    pretrain.feat_extract_co(speech_model, DATA_DIR)

@@ -57,7 +57,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
     max_epoch = 30
     lr = 1e-4
     lr_decay = 50
-    bs = 128
+    bs = 32
 
     logger.info(f"Max Epoch: {max_epoch}, LR: {lr}, batch size: {bs}\n")
 
@@ -65,7 +65,7 @@ def train(train_loader, test_loader, speech_encoder, image_encoder, linear_encod
                                  weight_decay=1e-3,
                                  betas=(0.95, 0.999))
 
-    print("start training")
+    print(f"start training - device: {device} - n_gpu: {torch.cuda.device_count()}")
     print(f"current steps: {global_step} | epochs: {epoch}")
     logger.info(f"==============TRAINING STARTED=================\n")
 

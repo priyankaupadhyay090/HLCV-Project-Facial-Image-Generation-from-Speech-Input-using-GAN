@@ -1,0 +1,155 @@
+07/15/2021 17:04:26 - WARNING - pretrain -   device: cuda, n_gpu: 3
+07/15/2021 17:04:28 - INFO - pretrain -   Max Epoch: 120, LR: 0.0001, batch size: 32
+
+07/15/2021 17:04:28 - INFO - pretrain -   ==============TRAINING STARTED=================
+
+07/15/2021 17:18:22 - INFO - pretrain -   current training eval status: 
+ Epoch: [5] Loss: 6.7402 |                     *Audio:R@1 0.0002 R@5 0.0005 R@10 0.0018 medr 2685.0000| *Image R@1 0.0005 R@5 0.0013 R@10 0.0018                    medr 2631.0000 
+
+
+07/15/2021 17:18:22 - INFO - pretrain -   epoch: 5 | loss: 6.7401909828186035 | avg_accuracy: 0.0018333332845941186
+
+07/15/2021 17:18:22 - INFO - pretrain -   best models and optimizer state saved in /local/supoka/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/SEN_saved_models
+07/15/2021 17:32:15 - INFO - pretrain -   current training eval status: 
+ Epoch: [10] Loss: 6.6453 |                     *Audio:R@1 0.0005 R@5 0.0010 R@10 0.0022 medr 2589.0000| *Image R@1 0.0002 R@5 0.0013 R@10 0.0028                    medr 2566.0000 
+
+
+07/15/2021 17:32:15 - INFO - pretrain -   epoch: 10 | loss: 6.645309925079346 | avg_accuracy: 0.0024999999441206455
+
+07/15/2021 17:32:15 - INFO - pretrain -   best models and optimizer state saved in /local/supoka/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/SEN_saved_models
+07/15/2021 17:46:08 - INFO - pretrain -   current training eval status: 
+ Epoch: [15] Loss: 6.8785 |                     *Audio:R@1 0.0000 R@5 0.0005 R@10 0.0015 medr 2549.0000| *Image R@1 0.0003 R@5 0.0012 R@10 0.0025                    medr 2558.0000 
+
+
+07/15/2021 17:46:08 - INFO - pretrain -   epoch: 15 | loss: 6.878476142883301 | avg_accuracy: 0.001999999862164259
+
+07/15/2021 18:00:02 - INFO - pretrain -   current training eval status: 
+ Epoch: [20] Loss: 6.5910 |                     *Audio:R@1 0.0007 R@5 0.0020 R@10 0.0038 medr 2605.0000| *Image R@1 0.0002 R@5 0.0017 R@10 0.0035                    medr 2615.0000 
+
+
+07/15/2021 18:00:02 - INFO - pretrain -   epoch: 20 | loss: 6.590964317321777 | avg_accuracy: 0.003666666802018881
+
+07/15/2021 18:00:02 - INFO - pretrain -   best models and optimizer state saved in /local/supoka/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/SEN_saved_models
+07/15/2021 18:13:55 - INFO - pretrain -   current training eval status: 
+ Epoch: [25] Loss: 6.7237 |                     *Audio:R@1 0.0003 R@5 0.0013 R@10 0.0020 medr 2788.0000| *Image R@1 0.0000 R@5 0.0005 R@10 0.0015                    medr 2735.0000 
+
+
+07/15/2021 18:13:55 - INFO - pretrain -   epoch: 25 | loss: 6.72374153137207 | avg_accuracy: 0.0017500000540167093
+
+07/15/2021 18:27:50 - INFO - pretrain -   current training eval status: 
+ Epoch: [30] Loss: 6.5512 |                     *Audio:R@1 0.0005 R@5 0.0012 R@10 0.0025 medr 2532.0000| *Image R@1 0.0002 R@5 0.0017 R@10 0.0028                    medr 2482.0000 
+
+
+07/15/2021 18:27:50 - INFO - pretrain -   epoch: 30 | loss: 6.55120849609375 | avg_accuracy: 0.0026666666381061077
+
+07/15/2021 18:41:45 - INFO - pretrain -   current training eval status: 
+ Epoch: [35] Loss: 6.8521 |                     *Audio:R@1 0.0000 R@5 0.0007 R@10 0.0018 medr 2654.0000| *Image R@1 0.0005 R@5 0.0018 R@10 0.0022                    medr 2618.0000 
+
+
+07/15/2021 18:41:45 - INFO - pretrain -   epoch: 35 | loss: 6.852057456970215 | avg_accuracy: 0.001999999862164259
+
+07/15/2021 18:55:37 - INFO - pretrain -   current training eval status: 
+ Epoch: [40] Loss: 6.7364 |                     *Audio:R@1 0.0003 R@5 0.0008 R@10 0.0017 medr 2563.0000| *Image R@1 0.0007 R@5 0.0013 R@10 0.0025                    medr 2498.0000 
+
+
+07/15/2021 18:55:37 - INFO - pretrain -   epoch: 40 | loss: 6.736433982849121 | avg_accuracy: 0.00208333320915699
+
+07/15/2021 19:09:30 - INFO - pretrain -   current training eval status: 
+ Epoch: [45] Loss: 6.8902 |                     *Audio:R@1 0.0003 R@5 0.0013 R@10 0.0022 medr 2518.0000| *Image R@1 0.0000 R@5 0.0010 R@10 0.0022                    medr 2505.0000 
+
+
+07/15/2021 19:09:30 - INFO - pretrain -   epoch: 45 | loss: 6.890199184417725 | avg_accuracy: 0.002166666556149721
+
+07/15/2021 19:23:20 - INFO - pretrain -   current training eval status: 
+ Epoch: [50] Loss: 6.7506 |                     *Audio:R@1 0.0003 R@5 0.0012 R@10 0.0032 medr 2401.0000| *Image R@1 0.0008 R@5 0.0023 R@10 0.0040                    medr 2390.0000 
+
+
+07/15/2021 19:23:20 - INFO - pretrain -   epoch: 50 | loss: 6.750649452209473 | avg_accuracy: 0.0035833334550261497
+
+07/15/2021 19:37:14 - INFO - pretrain -   current training eval status: 
+ Epoch: [55] Loss: 6.6325 |                     *Audio:R@1 0.0000 R@5 0.0015 R@10 0.0025 medr 2360.0000| *Image R@1 0.0002 R@5 0.0015 R@10 0.0030                    medr 2382.0000 
+
+
+07/15/2021 19:37:14 - INFO - pretrain -   epoch: 55 | loss: 6.6324567794799805 | avg_accuracy: 0.002749999985098839
+
+07/15/2021 19:51:07 - INFO - pretrain -   current training eval status: 
+ Epoch: [60] Loss: 6.7906 |                     *Audio:R@1 0.0000 R@5 0.0010 R@10 0.0032 medr 2327.0000| *Image R@1 0.0002 R@5 0.0015 R@10 0.0025                    medr 2395.0000 
+
+
+07/15/2021 19:51:07 - INFO - pretrain -   epoch: 60 | loss: 6.790566444396973 | avg_accuracy: 0.00283333333209157
+
+07/15/2021 20:05:04 - INFO - pretrain -   current training eval status: 
+ Epoch: [65] Loss: 6.8719 |                     *Audio:R@1 0.0005 R@5 0.0018 R@10 0.0032 medr 2391.0000| *Image R@1 0.0000 R@5 0.0008 R@10 0.0017                    medr 2356.0000 
+
+
+07/15/2021 20:05:04 - INFO - pretrain -   epoch: 65 | loss: 6.871938705444336 | avg_accuracy: 0.0024166665971279144
+
+07/15/2021 20:18:57 - INFO - pretrain -   current training eval status: 
+ Epoch: [70] Loss: 6.7450 |                     *Audio:R@1 0.0000 R@5 0.0012 R@10 0.0022 medr 2330.0000| *Image R@1 0.0005 R@5 0.0017 R@10 0.0033                    medr 2349.0000 
+
+
+07/15/2021 20:18:57 - INFO - pretrain -   epoch: 70 | loss: 6.745016098022461 | avg_accuracy: 0.002749999985098839
+
+07/15/2021 20:32:58 - INFO - pretrain -   current training eval status: 
+ Epoch: [75] Loss: 6.7102 |                     *Audio:R@1 0.0005 R@5 0.0015 R@10 0.0028 medr 2341.0000| *Image R@1 0.0005 R@5 0.0018 R@10 0.0030                    medr 2281.0000 
+
+
+07/15/2021 20:32:58 - INFO - pretrain -   epoch: 75 | loss: 6.710241317749023 | avg_accuracy: 0.002916666679084301
+
+07/15/2021 20:47:00 - INFO - pretrain -   current training eval status: 
+ Epoch: [80] Loss: 6.7310 |                     *Audio:R@1 0.0002 R@5 0.0008 R@10 0.0018 medr 2316.0000| *Image R@1 0.0002 R@5 0.0015 R@10 0.0025                    medr 2337.0000 
+
+
+07/15/2021 20:47:00 - INFO - pretrain -   epoch: 80 | loss: 6.73098087310791 | avg_accuracy: 0.002166666556149721
+
+07/15/2021 21:01:01 - INFO - pretrain -   current training eval status: 
+ Epoch: [85] Loss: 6.4374 |                     *Audio:R@1 0.0000 R@5 0.0010 R@10 0.0025 medr 2273.0000| *Image R@1 0.0002 R@5 0.0012 R@10 0.0027                    medr 2302.0000 
+
+
+07/15/2021 21:01:01 - INFO - pretrain -   epoch: 85 | loss: 6.437384605407715 | avg_accuracy: 0.0025833332911133766
+
+07/15/2021 21:15:04 - INFO - pretrain -   current training eval status: 
+ Epoch: [90] Loss: 6.6401 |                     *Audio:R@1 0.0000 R@5 0.0013 R@10 0.0028 medr 2313.0000| *Image R@1 0.0002 R@5 0.0017 R@10 0.0040                    medr 2336.0000 
+
+
+07/15/2021 21:15:04 - INFO - pretrain -   epoch: 90 | loss: 6.640107154846191 | avg_accuracy: 0.0034166667610406876
+
+07/15/2021 21:29:03 - INFO - pretrain -   current training eval status: 
+ Epoch: [95] Loss: 6.5882 |                     *Audio:R@1 0.0003 R@5 0.0013 R@10 0.0025 medr 2410.0000| *Image R@1 0.0002 R@5 0.0022 R@10 0.0032                    medr 2382.0000 
+
+
+07/15/2021 21:29:03 - INFO - pretrain -   epoch: 95 | loss: 6.588177680969238 | avg_accuracy: 0.00283333333209157
+
+07/15/2021 21:43:07 - INFO - pretrain -   current training eval status: 
+ Epoch: [100] Loss: 6.7160 |                     *Audio:R@1 0.0000 R@5 0.0012 R@10 0.0022 medr 2300.0000| *Image R@1 0.0002 R@5 0.0008 R@10 0.0028                    medr 2323.0000 
+
+
+07/15/2021 21:43:07 - INFO - pretrain -   epoch: 100 | loss: 6.71597146987915 | avg_accuracy: 0.0024999999441206455
+
+07/15/2021 21:57:09 - INFO - pretrain -   current training eval status: 
+ Epoch: [105] Loss: 6.6677 |                     *Audio:R@1 0.0002 R@5 0.0010 R@10 0.0020 medr 2306.0000| *Image R@1 0.0003 R@5 0.0017 R@10 0.0027                    medr 2324.0000 
+
+
+07/15/2021 21:57:09 - INFO - pretrain -   epoch: 105 | loss: 6.667663097381592 | avg_accuracy: 0.0023333332501351833
+
+07/15/2021 22:11:11 - INFO - pretrain -   current training eval status: 
+ Epoch: [110] Loss: 6.9254 |                     *Audio:R@1 0.0005 R@5 0.0020 R@10 0.0030 medr 2345.0000| *Image R@1 0.0005 R@5 0.0015 R@10 0.0045                    medr 2307.0000 
+
+
+07/15/2021 22:11:11 - INFO - pretrain -   epoch: 110 | loss: 6.92543888092041 | avg_accuracy: 0.0037499999161809683
+
+07/15/2021 22:11:11 - INFO - pretrain -   best models and optimizer state saved in /local/supoka/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/SEN_saved_models
+07/15/2021 22:25:11 - INFO - pretrain -   current training eval status: 
+ Epoch: [115] Loss: 6.6944 |                     *Audio:R@1 0.0002 R@5 0.0010 R@10 0.0022 medr 2334.0000| *Image R@1 0.0005 R@5 0.0012 R@10 0.0022                    medr 2339.0000 
+
+
+07/15/2021 22:25:11 - INFO - pretrain -   epoch: 115 | loss: 6.6944427490234375 | avg_accuracy: 0.002166666556149721
+
+07/15/2021 22:39:10 - INFO - pretrain -   current training eval status: 
+ Epoch: [120] Loss: 6.8052 |                     *Audio:R@1 0.0003 R@5 0.0012 R@10 0.0025 medr 2326.0000| *Image R@1 0.0003 R@5 0.0017 R@10 0.0030                    medr 2360.0000 
+
+
+07/15/2021 22:39:10 - INFO - pretrain -   epoch: 120 | loss: 6.805243492126465 | avg_accuracy: 0.002749999985098839
+
+07/15/2021 22:41:51 - INFO - __main__ -   Training finished, saving last epoch speech model to /local/supoka/HLCV-Project-Facial-Image-Generation-from-Speech-Input-using-GAN/SEN_saved_models/last_epoch_state_dict_speech_encoder.pt
+07/15/2021 22:41:51 - INFO - __main__ -   ====================TRAINING FINISHED====================

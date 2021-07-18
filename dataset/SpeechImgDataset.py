@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from mainGAN import MODAL
 
 from torch.utils.data.dataloader import default_collate
 import torch
@@ -93,6 +94,32 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
 
     return normalize(img)
 
+def get_single_img(img_path, imsize, bbox=None, transform=None, normalize=None):
+    img = Image.open(img_path).convert('RGB')
+    width, height = img.size
+    if bbox is not None:
+        r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
+        center_x = int((2 * bbox[0] + bbox[2]) / 2)
+        center_y = int((2 * bbox[1] + bbox[3]) / 2)
+        y1 = np.maximum(0, center_y - r)
+        y2 = np.minimum(height, center_y + r)
+        x1 = np.maximum(0, center_x - r)
+        x2 = np.minimum(width, center_x + r)
+        img = img.crop([x1, y1, x2, y2])
+
+    if transform is not None:
+        img = transform(img)
+    return normalize(img)
+
+def normalizeFeature(x):	
+    
+    # x = x + 1e-10 # for avoid RuntimeWarning: invalid value encountered in divide\
+    # feature_norm =  ((x**2).sum())**0.5           #       np.sum(x**2, axis=1)**0.5 # l2-norm
+    # feat = x / feature_norm
+    x_max = x.max()
+    x_min = x.min()
+    feat = (x-x_min)/(x_max-x_min)
+    return feat
 
 class SpeechImgDataset(data.Dataset):
     def __init__(self, data_dir, split='train', img_size=64, transform=None, target_transform=None):
@@ -163,14 +190,15 @@ class SpeechImgDataset(data.Dataset):
             audios = np.load(audio_file, allow_pickle=True)
         except:
             audios = None
-            return images, audios, cls_id, key, label
-
-        if len(audios.shape) == 2:
-            audios = audios[np.newaxis, :, :]
+        #if len(audios.shape) == 2:
+           #audios = audios[np.newaxis, :, :]
 
         # training vs feature extraction
         if TRAIN_MODE != 'extraction':
-            captions = audios[audio_ix]
+            if audios is not None:
+                captions = audios[audio_ix]
+            else:
+                captions = audios
         else:
             captions = audios
 
@@ -179,6 +207,141 @@ class SpeechImgDataset(data.Dataset):
         else:
             # print('returning images, captions, cls_id, key, label')
             return images, captions, cls_id, key, label
+
+    def __len__(self):
+        return len(self.filenames)
+
+
+class SpeechImgDatasetGAN(data.Dataset):
+    def __init__(self, data_dir, split='train', embedding_type='melspec',
+                 base_size=64, transform=None, target_transform=None):
+        self.transform = transform
+        self.norm = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        self.target_transform = target_transform
+        self.embedding_type = embedding_type
+
+        self.imsize = []
+        for i in range(3):
+            self.imsize.append(base_size)
+            base_size = base_size * 2
+
+        self.data = []
+        self.data_dir = data_dir
+        self.bbox = None
+        split_dir = os.path.join(data_dir, split)
+
+        self.filenames = self.load_filenames(split_dir)
+        self.embeddings = self.load_embedding(split_dir, embedding_type)
+        self.class_id = self.load_class_id(split_dir, len(self.filenames))
+
+        if MODAL == "":
+            self.iterator = self.prepair_training_pairs
+        else:
+            self.iterator = self.prepair_test_pairs
+
+    def load_embedding(self, data_dir, embedding_type):
+          
+        if MODAL == "train":
+            embedding_filename = PARENT_DIR / "SEN_saved_models" / "extraction" / 'speech_embeddings_train.pickle'
+        else:
+            embedding_filename = PARENT_DIR / "SEN_saved_models" / "extraction" / 'speech_embeddings_test.pickle'
+
+        if embedding_type != 'Audio_emb':
+            with open(data_dir + embedding_filename, 'rb') as f:
+                embeddings = pickle.load(f, encoding="bytes")
+                # pdb.set_trace()
+                embeddings = np.array(embeddings)
+                # if len(embeddings.shape)==2:
+                #     embeddings = embeddings[:,np.newaxis,:]
+        else:
+            with open(embedding_filename, 'rb') as f:
+                embeddings = pickle.load(f, encoding="bytes")
+                embeddings = np.array(embeddings)
+
+            # embedding_shape = [embeddings.shape[-1]]
+            print('embeddings: ', embeddings.shape)
+        return embeddings
+
+    def load_class_id(self, data_dir, total_num):
+        if os.path.isfile(data_dir + '/class_info.pickle'):
+            with open(data_dir + '/class_info.pickle', 'rb') as f:
+                class_id = pickle.load(f, encoding="bytes")
+        else:
+            class_id = np.arange(total_num)
+        return class_id
+
+    def load_filenames(self, data_dir):
+        filepath = os.path.join(data_dir, 'filenames.pickle')
+        with open(filepath, 'rb') as f:
+            filenames = pickle.load(f)
+        print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
+        return filenames
+
+    def prepair_training_pairs(self, index):
+        data_dir = self.data_dir
+        key = self.filenames[index]
+        class_id = self.class_id[index]
+        self.class_id = np.array(self.class_id)
+        same_index = index
+        bbox = None
+        data_dir = self.data_dir
+        # captions = self.captions[key]
+        embeddings = self.embeddings[index, :, :]
+        #img_name = '%s/images/%s.jpg' % (data_dir, key)
+        img_path_name = data_dir / 'CelebA-HQ-img' / f"{key}.jpg"
+        imgs = get_imgs(img_path_name, self.imsize, bbox, self.transform, normalize=self.norm)
+
+        wrong_ix = random.randint(0, len(self.filenames) - 1)
+        if self.class_id[index] == self.class_id[wrong_ix]:
+            wrong_ix = random.randint(0, len(self.filenames) - 1)
+        wrong_key = self.filenames[wrong_ix]
+        same_key = self.filenames[same_index]
+        wrong_bbox = None
+        same_bbox = None
+        #wrong_img_name = '%s/images/%s.jpg' % (data_dir, wrong_key)
+        #same_image_name = '%s/images/%s.jpg' % (data_dir, same_key)
+        wrong_img_name = data_dir / 'CelebA-HQ-img' / f"{wrong_key}.jpg"
+        same_image_name = data_dir / 'CelebA-HQ-img' / f"{same_key}.jpg"
+        wrong_imgs = get_imgs(wrong_img_name, self.imsize, wrong_bbox, self.transform, normalize=self.norm)
+        same_imgs = get_single_img(same_image_name, self.imsize, same_bbox, self.transform, normalize=self.norm)
+
+        embedding_ix = random.randint(0, embeddings.shape[0] - 1)
+        embedding = embeddings[embedding_ix, :]
+
+        
+        if self.embedding_type =='melspec':
+            embedding = normalizeFeature(embedding)
+        
+        if self.target_transform is not None:
+            embedding = self.target_transform(embedding)
+
+        return imgs, wrong_imgs,same_imgs, embedding, class_id, key  # captions
+
+    def prepair_test_pairs(self, index):
+        data_dir = self.data_dir
+        key = self.filenames[index]
+        bbox = None
+        data_dir = self.data_dir
+
+        # captions = self.captions[key]
+        embeddings = self.embeddings[index, :, :]   #[index,:,:]  changed by shawn
+
+
+        img_name = '%s/images/%s.jpg' % (data_dir, key)
+        imgs = get_imgs(img_name, self.imsize, bbox, self.transform, normalize=self.norm)
+
+        if self.embedding_type =='melspec':
+            embeddings = normalizeFeature(embeddings)
+
+        if self.target_transform is not None:
+            embeddings = self.target_transform(embeddings)
+
+        return imgs, embeddings, key  # captions
+
+    def __getitem__(self, index):
+        return self.iterator(index)
 
     def __len__(self):
         return len(self.filenames)

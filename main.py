@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default='cfg/eval_places.yml', type=str)    # train: birds_3stages.yml  test: eval_birds.yml
-    parser.add_argument('--gpu', dest='gpu_id', type=str, default='0')
+    parser.add_argument('--gpu', dest='gpu_id', type=str, default='1')
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='data/places/7classes')
     parser.add_argument('--save_root',type=str,default='outputs/gan/places',help='The root path for both pre-train result and main results')
     parser.add_argument('--manualSeed', type=int,default=200,help='manual seed')

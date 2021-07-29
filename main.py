@@ -1,108 +1,105 @@
+from __future__ import print_function
+from utils.config import cfg, cfg_from_file
+from dataset.datasets import SpeechDataset
+
 import torch
-import torch.nn as nn
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
-from torch.autograd import Variable
-from torchvision import transforms
-from pathlib import Path
-import network
-import pretrain
-from dataset import SpeechImgDataset
-import logging
-from datetime import datetime
+import torchvision.transforms as transforms
+
+import argparse
+import os
 import random
+import sys
+import pprint
+import datetime
+import dateutil.tz
+import time
+import sys
+import numpy as np
 
-PARENT_DIR = Path().resolve()
-DATA_DIR = PARENT_DIR / 'preprocess' / 'mmca'
-LOGGING_DIR = PARENT_DIR / 'logging'
-SAVING_DIR = PARENT_DIR / "SEN_saved_models"
-MANUAL_SEED = 200
-BATCH_SIZE = 32
-WORKERS = 8
-MODAL = "extraction"  # | "train"
+dir_path = (os.path.abspath(os.path.join(os.path.realpath(__file__), './.')))
+sys.path.append(dir_path)
 
-if not SAVING_DIR.exists():
-    SAVING_DIR.mkdir(parents=True, exist_ok=True)
-
-# set up logging
-try:
-    LOGGING_DIR.mkdir(parents=True, exist_ok=False)
-    print(f"Making {LOGGING_DIR} for saving log files")
-except FileExistsError:
-    print(f"Logging directory: {LOGGING_DIR} already exists.")
-time_now = datetime.now()
-logging_filename = LOGGING_DIR / f"SEN_{MODAL}_log_{time_now:%d_%m_%Y_%H_%M_%S}.txt"
-
-# set seed
-random.seed(MANUAL_SEED)
-np.random.seed(MANUAL_SEED)
-torch.manual_seed(MANUAL_SEED)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed(MANUAL_SEED)
-    torch.cuda.manual_seed_all(MANUAL_SEED)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train a GAN network')
+    parser.add_argument('--cfg', dest='cfg_file',
+                        help='optional config file',
+                        default='cfg/eval_places.yml', type=str)    # train: birds_3stages.yml  test: eval_birds.yml
+    parser.add_argument('--gpu', dest='gpu_id', type=str, default='0')
+    parser.add_argument('--data_dir', dest='data_dir', type=str, default='data/places/7classes')
+    parser.add_argument('--save_root',type=str,default='outputs/gan/places',help='The root path for both pre-train result and main results')
+    parser.add_argument('--manualSeed', type=int,default=200,help='manual seed')
+    parser.add_argument('--WORKERS',type=int,default=0)
+    args = parser.parse_args()
+    return args
 
 
-def worker_init_fn(worker_id):   # After creating the workers, each worker has an independent seed that is initialized to the curent random seed + the id of the worker
-    np.random.seed(MANUAL_SEED + worker_id)
+if __name__ == "__main__":
+    torch.cuda.empty_cache()
+    args = parse_args()
+    if args.cfg_file is not None:
+        cfg_from_file(args.cfg_file)
 
+    if args.gpu_id != '-1':
+        cfg.GPU_ID = args.gpu_id
+    else:
+        cfg.CUDA = False
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
-                    datefmt="%m/%d/%Y %H:%M:%S",
-                    filename=logging_filename,
-                    level=logging.INFO)
+    if args.data_dir != '':
+        cfg.DATA_DIR = args.data_dir
+    if args.save_root != '':
+        cfg.save_root = args.save_root
+    print('Using config:')
+    pprint.pprint(cfg)
 
-image_transform = transforms.Compose([
-    transforms.RandomCrop(299),
-    transforms.RandomHorizontalFlip()])
+    if not cfg.TRAIN.FLAG:
+        args.manualSeed = 100
+    random.seed(args.manualSeed)    
+    np.random.seed(args.manualSeed)
+    torch.manual_seed(args.manualSeed)
+    if cfg.CUDA:
+        torch.cuda.manual_seed(args.manualSeed) 
+        torch.cuda.manual_seed_all(args.manualSeed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    def worker_init_fn(worker_id):   # After creating the workers, each worker has an independent seed that is initialized to the curent random seed + the id of the worker
+        np.random.seed(args.manualSeed + worker_id)
 
-if MODAL == 'train':
+    now = datetime.datetime.now(dateutil.tz.tzlocal())
+    # timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
+    output_dir = cfg.save_root
 
-    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform=image_transform)
-    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform=image_transform)
+    split_dir, bshuffle = 'train', True
+    if not cfg.TRAIN.FLAG:        
+        bshuffle = False
+        split_dir = 'test'
 
-    train_loader = torch.utils.data.DataLoader(
-        train_data, batch_size=BATCH_SIZE,
-        drop_last=True, shuffle=True, num_workers=WORKERS,
-        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+    # Get data loader
+    imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM-1))
+    image_transform = transforms.Compose([
+        transforms.Resize(int(imsize * 76 / 64)),
+        transforms.RandomCrop(imsize),
+        transforms.RandomHorizontalFlip()])
+    
+    dataset = SpeechDataset(cfg.DATA_DIR, split_dir,cfg.EMBEDDING_TYPE,
+                            base_size=cfg.TREE.BASE_SIZE,
+                            transform=image_transform)
+    assert dataset
+    num_gpu = len(cfg.GPU_ID.split(','))
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.BATCH_SIZE * num_gpu,
+                                             drop_last=True, shuffle=bshuffle, num_workers=int(cfg.WORKERS),worker_init_fn=worker_init_fn)
 
-    test_loader = torch.utils.data.DataLoader(
-        test_data, batch_size=BATCH_SIZE,
-        drop_last=False, shuffle=False, num_workers=WORKERS,
-        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
+    # Define models and go to train/evaluate
+    if not cfg.GAN.B_CONDITION:
+        from steps.trainer import GANTrainer as trainer
+    else:
+        from steps.trainer import condGANTrainer as trainer
+    algo = trainer(output_dir, dataloader, imsize)
 
-elif MODAL == 'extraction':
-
-    train_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'train', transform=image_transform)
-    test_data = SpeechImgDataset.SpeechImgDataset(DATA_DIR, 'test', transform=image_transform)
-
-    train_loader = torch.utils.data.DataLoader(
-        train_data, batch_size=BATCH_SIZE,
-        drop_last=False, shuffle=False, num_workers=WORKERS,
-        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
-
-    test_loader = torch.utils.data.DataLoader(
-        test_data, batch_size=BATCH_SIZE,
-        drop_last=False, shuffle=False, num_workers=WORKERS,
-        collate_fn=SpeechImgDataset.pad_collate, worker_init_fn=worker_init_fn)
-
-speech_model = network.SED()
-image_model = network.Inception_V3_Model()
-linear_model = network.Linear_Encoder()
-
-if MODAL == "train":
-    pretrain.train(train_loader, test_loader, speech_model, image_model, linear_model)
-    print("model trained")
-    saved_model_filename = SAVING_DIR / "last_epoch_state_dict_speech_encoder.pt"
-    logger.info(f"Training finished, saving last epoch speech model to {saved_model_filename}")
-    torch.save(speech_model.state_dict(), saved_model_filename)
-    logger.info(f"====================TRAINING FINISHED====================")
-
-if MODAL == "extraction":
-    pretrain.feat_extract_co(speech_model, DATA_DIR)
-    logger.info(f"====================SPEECH FEATURES EXTRACTION FINISHED====================")
-
-
+    start_t = time.time()
+    if cfg.TRAIN.FLAG:
+        algo.train()
+    else:
+        algo.evaluate(split_dir)
+    end_t = time.time()
+    print('Total time for training:', end_t - start_t)

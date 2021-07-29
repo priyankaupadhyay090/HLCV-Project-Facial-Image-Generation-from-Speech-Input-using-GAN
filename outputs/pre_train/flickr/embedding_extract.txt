@@ -1,0 +1,15 @@
+starting extract speech embedding feature of trainset 
+starting extract speech embedding feature of trainset 
+starting extract speech embedding feature of trainset 
+starting extract speech embedding feature of trainset 
+starting extract speech embedding feature of trainset 
+extracting speech embedding feature of trainset is finished 
+starting extract speech embedding feature of testset 
+starting extract speech embedding feature of trainset 
+extracting speech embedding feature of trainset is finished 
+starting extract speech embedding feature of testset 
+starting extract speech embedding feature of trainset 
+extracting speech embedding feature of trainset is finished 
+starting extract speech embedding feature of testset 
+extracting speech embedding feature of testset is finished 
+speech embedding is saved 

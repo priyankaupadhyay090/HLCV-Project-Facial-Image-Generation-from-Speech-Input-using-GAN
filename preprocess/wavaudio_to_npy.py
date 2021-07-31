@@ -7,9 +7,9 @@ import librosa
 import os
 from tqdm import tqdm
 
-path = 'mmca/audio/wav/'
+path = 'mmca/audio/wav_one/'
 img_names = os.listdir(path)
-save_root = 'mmca/audio/audio_npy'
+save_root = 'mmca/audio/audio_npy_one'
 #for clss_name in sorted(clss_names):
 #    print(f"clss_name: {clss_name}")
 #    clss_path = os.path.join(path, clss_name)

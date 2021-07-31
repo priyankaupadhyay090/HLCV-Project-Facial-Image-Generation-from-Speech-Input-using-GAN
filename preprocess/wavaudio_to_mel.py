@@ -33,8 +33,8 @@ def audio_processing(input_file):
 
     return np.swapaxes(feat, 0, 1).astype('float32')
 
-root = 'mmca/audio/audio_npy'
-save_root = 'mmca/audio/mel'
+root = 'mmca/audio/audio_npy_one'
+save_root = 'mmca/audio/mel_one'
 clss_names = os.listdir(root)
 for clss_name in tqdm(sorted(clss_names), desc="images"):
     clss_path = os.path.join(root, clss_name)

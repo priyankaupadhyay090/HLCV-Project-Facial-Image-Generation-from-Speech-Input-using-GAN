@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='data/places/7classes')
     parser.add_argument('--save_root',type=str,default='outputs/gan/places',help='The root path for both pre-train result and main results')
     parser.add_argument('--manualSeed', type=int,default=200,help='manual seed')
-    parser.add_argument('--WORKERS',type=int,default=0)
+    parser.add_argument('--WORKERS',type=int,default=8)
     args = parser.parse_args()
     return args
 

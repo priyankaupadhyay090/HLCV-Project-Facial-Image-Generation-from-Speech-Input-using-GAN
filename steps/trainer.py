@@ -11,6 +11,7 @@ import torchvision.utils as vutils
 import numpy as np
 import os
 import time
+from tqdm import tqdm, trange
 
 from torch.autograd import Variable
 from PIL import Image, ImageFont, ImageDraw
@@ -18,9 +19,9 @@ from copy import deepcopy
 
 from utils.config import cfg
 from utils.utils import mkdir_p
-from models.model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
-from models.ImageModels import Inception_v3, LINEAR_ENCODER
-from tensorboardX import FileWriter, summary
+from Models.model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
+from Models.ImageModels import Inception_v3, LINEAR_ENCODER
+from torch.utils.tensorboard import FileWriter, summary # fixed import from from tensorboardX
 
 
 
@@ -553,10 +554,10 @@ class condGANTrainer(object):
         predictions = []
         count = start_count
         start_epoch = start_count // (self.num_batches)       
-        for epoch in range(start_epoch, self.max_epoch):
+        for epoch in trange(start_epoch, self.max_epoch):
             start_t = time.time()
 
-            for step, data in enumerate(self.data_loader, 0):
+            for step, data in enumerate(tqdm(self.data_loader, desc="step")):
                 #######################################################
                 # (0) Prepare training data
                 ######################################################

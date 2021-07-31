@@ -253,7 +253,7 @@ class SpeechDataset(data.Dataset):
         with open(filepath, 'rb') as f:
             filenames = pickle.load(f)
         reduced_filenames = [x for x in filenames if int(x) <= 10000] #deal with missing filenames
-        print(len(lmao))
+        # print(len(lmao))
         print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
         return reduced_filenames
 

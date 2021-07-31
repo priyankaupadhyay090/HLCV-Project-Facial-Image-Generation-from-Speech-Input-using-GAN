@@ -1,6 +1,5 @@
 import os
 import pickle
-
 import torch
 from torch._C import device
 import torch.nn as nn
@@ -408,7 +407,7 @@ def feat_extract_co(audio_model, path):
     logger.info(f"device: {device} | n_gpu: {torch.cuda.device_count()}")
 
     # load saved model for eval
-    audio_model.load_state_dict(torch.load(saving_dir / f"best_speech_encoder_100.pt"))  #best_audio_model
+    audio_model.load_state_dict(torch.load(saving_dir / f"best_speech_encoder_110.pt"))  #best_audio_model
     audio_model = audio_model.to(device)
     audio_model.eval()
 
@@ -417,7 +416,7 @@ def feat_extract_co(audio_model, path):
     info = '***starting extract speech embedding feature of TRAINSET***\n'
     print(info)
 
-    features_saving_dir = saving_dir / "extraction"
+    features_saving_dir = saving_dir / f"extraction_2"
     if not features_saving_dir.is_dir():
         features_saving_dir.mkdir(parents=True, exist_ok=False)
 

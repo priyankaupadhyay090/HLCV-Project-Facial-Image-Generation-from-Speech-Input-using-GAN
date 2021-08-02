@@ -19,8 +19,8 @@ from copy import deepcopy
 
 from utils.config import cfg
 from utils.utils import mkdir_p
-from models import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
-from models import Inception_v3, LINEAR_ENCODER
+from Models.model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
+from Models.model import Inception_v3, LINEAR_ENCODER
 from torch.utils.tensorboard import FileWriter, summary # fixed import from from tensorboardX
 
 

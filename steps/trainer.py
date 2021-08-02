@@ -19,8 +19,8 @@ from copy import deepcopy
 
 from utils.config import cfg
 from utils.utils import mkdir_p
-from Models.model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
-from Models.ImageModels import Inception_v3, LINEAR_ENCODER
+from models import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, MD_NET
+from models import Inception_v3, LINEAR_ENCODER
 from torch.utils.tensorboard import FileWriter, summary # fixed import from from tensorboardX
 
 
@@ -207,20 +207,20 @@ def load_network(gpus,num_batches):
         inception_model = inception_model.cuda()
     inception_model.eval()
 
-    if cfg.TRAIN.COEFF.MD_LOSS>0:  
-        netMD = MD_NET()        
-        netMD.apply(weights_init)
+    #if cfg.TRAIN.COEFF.MD_LOSS>0:  
+        #netMD = MD_NET()        
+        #netMD.apply(weights_init)
         #netMD = torch.nn.DataParallel(netMD, device_ids=gpus)
     
-    if cfg.TRAIN.NET_MD != '':
-        state_dict = torch.load(cfg.TRAIN.NET_MD)
-        netMD.load_state_dict(state_dict)
+    #if cfg.TRAIN.NET_MD != '':
+        #state_dict = torch.load(cfg.TRAIN.NET_MD)
+        #netMD.load_state_dict(state_dict)
             
        
-    if cfg.TRAIN.COEFF.MD_LOSS>0:
-        return netG, netsD, netMD, len(netsD), inception_model, count
-    else:
-        return netG, netsD, len(netsD), inception_model, count
+    #if cfg.TRAIN.COEFF.MD_LOSS>0:
+        #return netG, netsD, netMD, len(netsD), inception_model, count
+    #else:
+    return netG, netsD, len(netsD), inception_model, count
 
 
 def define_optimizers(netG, netsD):
@@ -239,11 +239,11 @@ def define_optimizers(netG, netsD):
 
 
 def save_model(netG, avg_param_G, DIS_NET, epoch, model_dir):
-    if cfg.TRAIN.COEFF.MD_LOSS>0:
-        netsD, netMD = DIS_NET[0],DIS_NET[1]        
-        torch.save(netMD.state_dict(), '%s/netMD.pth' % (model_dir))
-    else:
-        netsD = DIS_NET
+    #if cfg.TRAIN.COEFF.MD_LOSS>0:
+        #netsD, netMD = DIS_NET[0],DIS_NET[1]        
+        #torch.save(netMD.state_dict(), '%s/netMD.pth' % (model_dir))
+    #else:
+    netsD = DIS_NET
     
     load_params(netG, avg_param_G)
     torch.save(netG.state_dict(), '%s/netG_%d.pth' % (model_dir, epoch))
@@ -302,7 +302,7 @@ class condGANTrainer(object):
         s_gpus = cfg.GPU_ID.split(',')
         self.gpus = [int(ix) for ix in s_gpus]
         self.num_gpus = len(self.gpus)
-        torch.cuda.set_device(self.gpus[0])
+        torch.cuda.set_device(0)
         cudnn.benchmark = True
 
         self.batch_size = cfg.TRAIN.BATCH_SIZE * self.num_gpus
@@ -331,7 +331,7 @@ class condGANTrainer(object):
                 wrong_vimgs.append(Variable(w_imgs[i]))
         
         return imgs, real_vimgs, wrong_vimgs,same_vimg, vembedding,class_id
-    def train_MDnet(self, count):
+    """ def train_MDnet(self, count):
         flag = count % 100
         batch_size = self.real_imgs[0].size(0)
         real_imgs = self.real_imgs[-1]
@@ -378,7 +378,7 @@ class condGANTrainer(object):
         if flag == 0:
             summary_MD = summary.scalar('MD_loss', errMD.item())
             self.summary_writer.add_summary(summary_MD, count)
-        return errMD
+        return errMD """
     def train_Dnet(self, idx, count):
         flag = count % 100
         batch_size = self.real_imgs[0].size(0)
@@ -438,7 +438,7 @@ class condGANTrainer(object):
                 errG_patch = cfg.TRAIN.COEFF.UNCOND_LOSS * criterion(outputs[1], real_labels)
                 errG = errG + errG_patch
             errG_total = errG_total + errG
-            if cfg.TRAIN.COEFF.CONTENTCONSIST_LOSS>0 or cfg.TRAIN.COEFF.SEMANTICONSIST_LOSS>0 or cfg.TRAIN.COEFF.MD_LOSS>0: 
+            """ if cfg.TRAIN.COEFF.CONTENTCONSIST_LOSS>0 or cfg.TRAIN.COEFF.SEMANTICONSIST_LOSS>0 or cfg.TRAIN.COEFF.MD_LOSS>0: 
                 fake_feat = self.image_cnn(self.fake_imgs[i])
                 fake_feat = self.image_encoder(fake_feat)
             if cfg.TRAIN.COEFF.CONTENTCONSIST_LOSS>0 or cfg.TRAIN.COEFF.MD_LOSS>0:
@@ -455,7 +455,7 @@ class condGANTrainer(object):
             if cfg.TRAIN.COEFF.MD_LOSS>0 and i==(self.num_Ds-1):             
                 outputs2 = self.netMD(real_feat,fake_feat)
                 errMG = nn.CrossEntropyLoss()(outputs2,real_labels.long())
-                errG_total = errG_total + errMG*cfg.TRAIN.COEFF.MD_LOSS
+                errG_total = errG_total + errMG*cfg.TRAIN.COEFF.MD_LOSS """
             if flag == 0:
                 summary_D = summary.scalar('G_loss%d' % i, errG.item())
                 self.summary_writer.add_summary(summary_D, count)
@@ -494,39 +494,39 @@ class condGANTrainer(object):
         return kl_loss, errG_total
 
     def train(self):
-        if cfg.TRAIN.COEFF.MD_LOSS>0:
-            self.netG, self.netsD, self.netMD, self.num_Ds, self.inception_model, start_count = load_network(self.gpus,self.num_batches)
-        else:        
-            self.netG, self.netsD, self.num_Ds, self.inception_model, start_count = load_network(self.gpus,self.num_batches)
+        #if cfg.TRAIN.COEFF.MD_LOSS>0:
+            #self.netG, self.netsD, self.netMD, self.num_Ds, self.inception_model, start_count = load_network(self.gpus,self.num_batches)
+        #else:        
+        self.netG, self.netsD, self.num_Ds, self.inception_model, start_count = load_network(self.gpus,self.num_batches)
         
         
         avg_param_G = copy_G_params(self.netG)
 
-        if cfg.TRAIN.COEFF.CONTENTCONSIST_LOSS>0 or cfg.TRAIN.COEFF.SEMANTICONSIST_LOSS>0 or cfg.TRAIN.COEFF.MD_LOSS>0:
-            self.image_cnn = Inception_v3()
-            self.image_encoder = LINEAR_ENCODER()
-            """ if not isinstance(self.image_cnn, torch.nn.DataParallel):
-                self.image_cnn = nn.DataParallel(self.image_cnn)
-            if not isinstance(self.image_encoder, torch.nn.DataParallel):
-                self.image_encoder = nn.DataParallel(self.image_encoder)
-            if cfg.DATASET_NAME=='birds':
-                self.image_encoder.load_state_dict(torch.load("outputs/pre_train/birds/models/best_image_model.pth"))
-            if cfg.DATASET_NAME=='flowers':
-                self.image_encoder.load_state_dict(torch.load("outputs/pre_train/flowers/models/best_image_model.pth")) """
+        #if cfg.TRAIN.COEFF.CONTENTCONSIST_LOSS>0 or cfg.TRAIN.COEFF.SEMANTICONSIST_LOSS>0 or cfg.TRAIN.COEFF.MD_LOSS>0:
+        self.image_cnn = Inception_v3()
+        self.image_encoder = LINEAR_ENCODER()
+        """ if not isinstance(self.image_cnn, torch.nn.DataParallel):
+            self.image_cnn = nn.DataParallel(self.image_cnn)
+        if not isinstance(self.image_encoder, torch.nn.DataParallel):
+            self.image_encoder = nn.DataParallel(self.image_encoder)
+        if cfg.DATASET_NAME=='birds':
+            self.image_encoder.load_state_dict(torch.load("outputs/pre_train/birds/models/best_image_model.pth"))
+        if cfg.DATASET_NAME=='flowers':
+            self.image_encoder.load_state_dict(torch.load("outputs/pre_train/flowers/models/best_image_model.pth")) """
             
-            if cfg.CUDA:
-                self.image_cnn = self.image_cnn.cuda()
-                self.image_encoder = self.image_encoder.cuda()
-            self.image_cnn.eval()
-            self.image_encoder.eval()
-            for p in self.image_cnn.parameters():
-                p.requires_grad = False
-            for p in self.image_encoder.parameters():
-                p.requires_grad = False
+        if cfg.CUDA:
+            self.image_cnn = self.image_cnn.cuda()
+            self.image_encoder = self.image_encoder.cuda()
+        self.image_cnn.eval()
+        self.image_encoder.eval()
+        for p in self.image_cnn.parameters():
+            p.requires_grad = False
+        for p in self.image_encoder.parameters():
+            p.requires_grad = False
 
         self.optimizerG, self.optimizersD = define_optimizers(self.netG, self.netsD)
-        if cfg.TRAIN.COEFF.MD_LOSS>0:        
-            self.optimizerMD = optim.Adam(self.netMD.parameters(), lr=cfg.TRAIN.DISCRIMINATOR_LR, betas=(0.5, 0.999))
+        #if cfg.TRAIN.COEFF.MD_LOSS>0:        
+            #self.optimizerMD = optim.Adam(self.netMD.parameters(), lr=cfg.TRAIN.DISCRIMINATOR_LR, betas=(0.5, 0.999))
         
         self.criterion = nn.BCELoss()
         self.real_labels = Variable(torch.FloatTensor(self.batch_size).fill_(1))
@@ -577,8 +577,8 @@ class condGANTrainer(object):
                     errD = self.train_Dnet(i, count)
                     errD_total += errD
                 #update MD network
-                errMD = self.train_MDnet(count)
-                errD_total += errMD
+                #errMD = self.train_MDnet(count)
+                #errD_total += errMD
                 #######################################################
                 # (3) Update G network: maximize log(D(G(z)))
                 ######################################################
@@ -600,10 +600,10 @@ class condGANTrainer(object):
 
                 count = count + 1
             if epoch % cfg.TRAIN.SAVE_EPOCH ==0:
-                if cfg.TRAIN.COEFF.MD_LOSS>0:
-                    DIS_NET = [self.netsD,self.netMD]
-                else: 
-                    DIS_NET = self.netsD
+                #if cfg.TRAIN.COEFF.MD_LOSS>0:
+                    #DIS_NET = [self.netsD,self.netMD]
+                #else: 
+                DIS_NET = self.netsD
                 save_model(self.netG, avg_param_G, DIS_NET, epoch, self.model_dir)
             if epoch % cfg.TRAIN.SNAPSHOT_EPOCH == 0:                                               
                 # Save images
@@ -645,10 +645,10 @@ class condGANTrainer(object):
                      errD_total.item(), errG_total.item(),
                      kl_loss.item(), end_t - start_t))
 
-        if cfg.TRAIN.COEFF.MD_LOSS>0:
-            DIS_NET = [self.netsD,self.netMD]
-        else: 
-            DIS_NET = self.netsD
+        #if cfg.TRAIN.COEFF.MD_LOSS>0:
+            #DIS_NET = [self.netsD,self.netMD]
+        #else: 
+        DIS_NET = self.netsD
         save_model(self.netG, avg_param_G, DIS_NET, epoch, self.model_dir)
         self.summary_writer.close()
 
